@@ -6,6 +6,7 @@ pip install -r requirements.txt
 ```
 
 ## Architecture (Psuedocode)
+```
 while event_queue_isnt_empty():
     event = get_latest_event_from_queue();
     if event.type == "tick":
@@ -16,4 +17,5 @@ while event_queue_isnt_empty():
         portfolio.handle_order(event);
     else if event.type == "fill":
         portfolio.handle_fill(event)
+```
 
