@@ -5,5 +5,4 @@ from backtester.data import Data
 
 if __name__ == "__main__":
     msft = Data(["msft", "aapl"])
-    data = msft.get_data()
-    print(data.columns["AAPL"])
+    print(msft.get_specific_stock("AAPl"))
