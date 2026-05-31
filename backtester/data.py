@@ -26,17 +26,21 @@ class Data:
         return self.data[ticker.upper()]
 
 class DataHandler:
-    def __init__(self, tickers:list):
+    def __init__(self, tickers:list, queue):
         self.data = Data(tickers)
+        self.tickers = tickers
         self.curBar = 0
+        self.q = queue
 
     # Since this is backtesting, we have all the historic data
     # so we can just index it    
     def updateBar(self):
         if(self.curBar >= self.data.num_data):
-            return TerminateEvent
+            self.q.append(TerminateEvent())
+            return
         self.curBar += 1
-        return MarketEvent()
+        self.q.append(MarketEvent())
+        return 
     
     def get_last_N_bars(self, symbol, N):
         start, end = max(0, self.curBar - N), self.curBar
