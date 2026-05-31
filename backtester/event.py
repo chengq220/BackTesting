@@ -4,12 +4,17 @@ class Event:
     def __init__(self, categ):
         self.type = categ
 
-# 
+# Event to trigger market updates
 class MarketEvent(Event):
     def __init__(self):
         super().__init__("MARKET") 
 
-# 
+# Event to terminate back testing
+class TerminateEvent(Event):
+    def __init__(self):
+        super().__init__("KILL") 
+
+# Event to take into account the signal from the strategy
 class SignalEvent(Event):
     """
     symbol - ticker symbol
@@ -22,7 +27,7 @@ class SignalEvent(Event):
         self.datetime = datetime
         self.direction = direction
 
-#
+# Event to place the order for the assets
 class OrderEvent(Event):
     """
     symbol - ticker symbol
@@ -46,8 +51,17 @@ class OrderEvent(Event):
         print("At time%s , Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s" % \
             (self.datetime, self.symbol, self.order_type, self.quantity, self.direction))
 
-# 
+# Execute the trade
 class FillEvent(Event):
+    """
+    timeindex - time the stock is filled
+    symbol - ticker symbol
+    exchange - from which exchange the order is filled
+    quantity - the number of stocks to buy/sell
+    direction - buy/sell
+    fill_cost - the total cost for the order
+    commission - the fee that are applied 
+    """
     def __init__(self, timeindex, symbol, exchange, quantity, 
                  direction, fill_cost, commission=None):
         super().__init__("FILL") 

@@ -19,3 +19,5 @@ while event_queue_isnt_empty():
         portfolio.handle_fill(event)
 ```
 
+## Reference
+www.quantstart.com
