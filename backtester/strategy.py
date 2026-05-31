@@ -1,6 +1,5 @@
 from backtester.event import SignalEvent
-from time import time
-
+import time
 
 # Answer the question "what is my directional view right now?"
 class Strategy:
@@ -11,6 +10,7 @@ class Strategy:
         # The action queue 
         self.q = queue
 
+        # The company tickers we are tracking
         self.tickers = self.data.tickers
 
         # initialize the direction to "OUT" because there is no 

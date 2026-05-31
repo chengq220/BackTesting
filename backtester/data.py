@@ -17,13 +17,13 @@ class Data:
             else:
                 stock_info = yf.download([up_tick], auto_adjust=True)
             self.stocks[up_tick] = stock_info
-        self.num_data = len(tickers[0].upper())
+        self.num_data = len(self.stocks[tickers[0].upper()])
 
     def get_data(self):
         return self.stocks
     
     def get_specific_stock(self, ticker:str):
-        return self.data[ticker.upper()]
+        return self.stocks[ticker.upper()]
 
 class DataHandler:
     def __init__(self, tickers:list, queue):
