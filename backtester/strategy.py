@@ -42,6 +42,7 @@ class Strategy:
         output = SignalEvent(ticker, datetime, direction)
         return output
     
+    
 class MAC():
     def __init__(self):
         self.lma = []
@@ -52,7 +53,7 @@ class MAC():
     Compute the directional signal for the stock using the moving average 
     @param dt - 60 days stock ending prices
 
-    return [long, short, out (stay)]
+    return [long, short, out]
     """
     def get_signal(self, dt):
         lma_1 = dt["Close"].mean().iloc[0]
