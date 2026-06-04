@@ -1,19 +1,21 @@
 import yfinance as yf
 from backtester.event import MarketEvent, TerminateEvent
+from collections import deque
+# from event import MarketEvent, TerminateEvent
 
 class Data:
-    def __init__(self, tickers:list):
+    def __init__(self, tickers:list, period:str="6mo"):
         assert type(tickers) is list, "Ticker must be a list"
         assert len(tickers) > 0, "Must be non-empty"
         self.num_tickers = len(tickers)
         self.stocks = {}
-        self.__download__(tickers)
+        self.__download__(tickers, period)
 
-    def __download__(self, tickers:str, interval:str=None):
+    def __download__(self, tickers:str, period):
         for tick in tickers:
             up_tick = tick.upper()
-            if interval:
-                stock_info = yf.download([up_tick], auto_adjust=True, interval=interval)
+            if period:
+                stock_info = yf.download([up_tick], auto_adjust=True, period=period)
             else:
                 stock_info = yf.download([up_tick], auto_adjust=True)
             self.stocks[up_tick] = stock_info
@@ -26,10 +28,10 @@ class Data:
         return self.stocks[ticker.upper()]
 
 class DataHandler:
-    def __init__(self, tickers:list, queue):
-        self.data = Data(tickers)
+    def __init__(self, tickers:list, queue:deque, period:str="1y", curBar:int=60):
+        self.data = Data(tickers, period)
         self.tickers = tickers
-        self.curBar = 0
+        self.curBar = curBar if curBar else 0
         self.q = queue
 
     # Since this is backtesting, we have all the historic data
@@ -48,3 +50,7 @@ class DataHandler:
         return last_N
 
 
+if __name__ == "__main__":
+    from collections import deque
+    queue = deque()
+    sim = DataHandler(["aapl", "msft"], queue)

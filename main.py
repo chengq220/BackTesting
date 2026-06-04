@@ -21,7 +21,9 @@ class Simulation:
                 self.strategy.on_market();
             elif event.type == "SIGNAL":
                 # self.portfolio.handle_signal(event);
-                print("SIGNAL event recieved")
+                print(event.symbol)
+                print(event.direction)
+                print("========================")
             # elif event.type == "ORDER":
             #     self.portfolio.handle_order(event);
             # elif event.type == "FILL":
