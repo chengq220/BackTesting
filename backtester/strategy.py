@@ -55,26 +55,25 @@ class MAC():
     return [long, short, out (stay)]
     """
     def get_signal(self, dt):
-        if len(self.lma) == 0:
-            return "OUT"
-        
         lma_1 = dt["Close"].mean().iloc[0]
         sma_1 = dt["Close"][-30:].mean().iloc[0]
         
-        lma_0 = self.lma[-1]
-        sma_0 = self.sma[-1]
+        lma_0 = self.lma[-1] if len(self.lma) > 0 else None
+        sma_0 = self.sma[-1] if len(self.sma) > 0 else None
 
         self.lma.append(lma_1)
         self.sma.append(sma_1)
 
-        if(lma_0 > sma_0 and lma_1 < sma_1):
-            self.cur_strats = "SHORT"
-            return "SHORT"
-        elif(lma_0 < sma_0 and lma_1 > sma_1):
-            self.cur_strats = "LONG"
-            return "LONG"
-        else:
-            return self.cur_strats
+        if lma_0 and sma_0:
+            if(lma_0 - sma_0 > 0 and lma_1 - sma_1 < 0):
+                self.cur_strats = "SHORT"
+                return "SHORT"
+            elif(lma_0 - sma_0 < 0 and lma_1 - sma_1 > 0):
+                self.cur_strats = "LONG"
+                return "LONG"
+            
+        return self.cur_strats
+        
 
 
         
