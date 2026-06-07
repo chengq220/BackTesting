@@ -15,17 +15,21 @@ class Simulation:
     def simulate(self):
         while True:
             ret_event = None
-            self.bars.updateBar();
+            self.bars.updateBar()
             ret_event = self.queue.popleft() 
             if event.type == "KILL":
                 print("Terminating")
                 break
             elif event.type == "MARKET":
-                ret_event = self.strategy.on_market();
+                prices = {}
+                for tick in self.bars.tickers:
+                    prices[tick] = self.bars.get_last_N_bars(tick, 1)[-1]
+                _ = self.portfolio.on_market(prices)
+                ret_event = self.strategy.on_market()
             elif event.type == "SIGNAL":
-                ret_event = self.portfolio.handle_signal(event);
+                ret_event = self.portfolio.handle_signal(event)
             elif event.type == "ORDER":
-                ret_event = self.executor.handle_order(event);
+                ret_event = self.executor.handle_order(event)
             elif event.type == "FILL":
                 _ = self.portfolio.handle_fill_event(event)
             else:

@@ -25,14 +25,13 @@ class Executor():
         time_index = datetime.now()
 
         share_quantity = dollar_quantity//price_post_fee
-        fill_cost = share_quantity * price_post_fee
-        commission = share_quantity * self.fee
+        commission = self.fee
 
         ret_event = FillEvent(timeindex=time_index,
                               symbol=symbol,
                               exchange=self.exchange,
                               quantity=share_quantity,
                               direction=direction,
-                              fill_cost=fill_cost,
+                              fill_cost=symb_close_price,
                               commission=commission)
         return [ret_event]
