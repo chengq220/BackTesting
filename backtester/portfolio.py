@@ -1,7 +1,6 @@
 from backtester.event import OrderEvent
 from collections import defaultdict
 from datetime import datetime
-from execution import Executor
 
 """
 Portfolio class to simulate one's investment portfolio
@@ -10,9 +9,8 @@ class Portfolio():
     """
     Contains fields such as free_cash, equity, position, trade logs, historys
     """
-    def __init__(self, inital_cash, data):
+    def __init__(self, inital_cash):
         self.free_cash = inital_cash
-        self.data = data
         self.equity = 0
         self.position = defaultdict(int)
         self.trade_log = []
@@ -23,8 +21,7 @@ class Portfolio():
     def handle_signal_event(self, event):
         sig_direction = event.direction
         symbol = event.symbol
-        latest_price = self.data.get_last_N_bars(symbol, 1)["Close"][-1]
-        quantity = self.free_cash // latest_price
+        quantity = self.free_cash
         dt = datetime.now()
         if sig_direction == "LONG":
             direction = "BUY"

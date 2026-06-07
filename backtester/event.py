@@ -34,7 +34,7 @@ class OrderEvent(Event):
     datetime - the time stamp for the signal
     direction - buy/sell
     order_type - market or limit
-    quantity - the number of stocks to buy/sell
+    quantity - the cash amount of stocks to buy/sell
     """
     def __init__(self, symbol, datetime, direction, order_type, quantity):
         super().__init__("ORDER") 

@@ -9,8 +9,8 @@ class Simulation:
         self.queue = deque()
         self.bars = DataHandler(tickers)
         self.strategy = Strategy(self.bars)
-        self.portfolio = Portfolio(10000, self.bars)
-        self.executor = Executor()
+        self.portfolio = Portfolio(10000)
+        self.executor = Executor(self.bars)
     
     def simulate(self):
         while True:

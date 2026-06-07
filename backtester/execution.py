@@ -1,19 +1,38 @@
+from backtester.event import FillEvent
+import datetime
+
+"""
+Act like the exchange
+"""
 class Executor():
-    def __init__(self, exchange):
+    def __init__(self, exchange, data):
         self.exchange = exchange
+        self.data = data
+        self.fee = 0.01 # charging a flat fee
 
     """
-    Compute the fees that's charged for the transaction
+    Executes the order events and buys/sells a tangible amount
     """
-    @staticmethod
-    def compute_commission(quantity, fill_cost):
-        full_cost = 1.3
-        if quantity <= 500:
-            full_cost = max(1.3, 0.013 * quantity)
-        else: # Greater than 500
-            full_cost = max(1.3, 0.008 * quantity)
-        full_cost = min(full_cost, 0.5 / 100.0 * quantity * fill_cost)
-        return full_cost
-
     def execute_order(self, event):
-        return 0
+
+        symbol = event.symbol
+        order_type = event.order_type
+        dollar_quantity = event.quantity
+        direction = event.direction
+
+        symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1]
+        price_post_fee = symb_close_price + self.fee 
+        time_index = datetime.now()
+
+        share_quantity = dollar_quantity//price_post_fee
+        fill_cost = share_quantity * price_post_fee
+        commission = share_quantity * self.fee
+
+        ret_event = FillEvent(timeindex=time_index,
+                              symbol=symbol,
+                              exchange=self.exchange,
+                              quantity=share_quantity,
+                              direction=direction,
+                              fill_cost=fill_cost,
+                              commission=commission)
+        return [ret_event]
