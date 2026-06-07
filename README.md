@@ -21,7 +21,7 @@ while event_queue_isnt_empty():
     else if event.type == "signal":
         portfolio.handle_signal(event);
     else if event.type == "order":
-        portfolio.handle_order(event);
+        execution.handle_order(event);
     else if event.type == "fill":
         portfolio.handle_fill(event)
 ```
