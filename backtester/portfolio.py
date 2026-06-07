@@ -35,12 +35,13 @@ class Portfolio():
     def handle_signal_event(self, event):
         sig_direction = event.direction
         symbol = event.symbol
-        quantity = self.free_cash
         dt = datetime.now()
         if sig_direction == "LONG":
             direction = "BUY"
+            quantity = self.free_cash
         elif sig_direction == "SHORT":
             direction = "SELL"
+            quantity = self.position[symbol]
         else:
             return 
         ret_event = OrderEvent(symbol=symbol, 
@@ -54,21 +55,15 @@ class Portfolio():
     # for now sell/shorting is just going to be sell all of the assets
     # and return it to free-cash for simplicity 
     def __update_sell(self, event):
-        position_value = 0
-        for symb in self.position:
-            position_value += (event.fill_cost - event.commission) * self.position[symb] 
-            self.position[symb] = 0
-        self.free_cash = self.free_cash + position_value
+        share_sold = self.position[event.symbol]
+        self.position[event.symbol] = 0
+        self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
         return 1
 
     # Handle the updating for buy
     def __update_buy(self, event):
         self.position[event.symbol] += event.quantity
         self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
-        position_value = 0
-        for symb in self.position:
-            position_value += self.position[symb] * event.fill_cost
-        self.equity = self.free_cash + position_value
         return 1
     
     # Update the portfolio to reflect the position change
@@ -77,7 +72,10 @@ class Portfolio():
             _ = self.__update_sell(event) #Flat
         elif event.direction == "BUY":
             _ = self.__update_buy(event)
-
+        position_value = 0
+        for symb in self.position:
+            position_value += self.position[symb] * event.fill_cost
+        self.equity = self.free_cash + position_value
         self.trade_log.append(event)
         return 1
 

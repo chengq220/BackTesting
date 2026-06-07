@@ -9,22 +9,32 @@ class Executor():
         self.exchange = exchange
         self.data = data
         self.fee = 0.01 # charging a flat fee
+    
+    # Responsible to respond to sell orders
+    def __sell_order(self, event, close_price):
+        share_quantity = event.quantity
+        total_value = share_quantity * close_price
+        return total_value
+    
+    # Responsible to respond to buy orders
+    def __buy_order(self, event, close_price):
+        dollar_quantity = event.quantity
+        price_post_fee = close_price + self.fee 
+        share_quantity = dollar_quantity//price_post_fee
+        return share_quantity
 
     """
     Executes the order events and buys/sells a tangible amount
     """
     def execute_order(self, event):
-
         symbol = event.symbol
         order_type = event.order_type
-        dollar_quantity = event.quantity
         direction = event.direction
-
+        
         symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1]
-        price_post_fee = symb_close_price + self.fee 
         time_index = datetime.now()
 
-        share_quantity = dollar_quantity//price_post_fee
+        share_quantity = self.__buy_order(event, symb_close_price) if direction == "BUY" else self.__sell_order(event, symb_close_price)
         commission = self.fee
 
         ret_event = FillEvent(timeindex=time_index,
