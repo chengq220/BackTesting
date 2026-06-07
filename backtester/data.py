@@ -28,21 +28,19 @@ class Data:
         return self.stocks[ticker.upper()]
 
 class DataHandler:
-    def __init__(self, tickers:list, queue:deque, period:str="1y", curBar:int=60):
+    def __init__(self, tickers:list, period:str="1y", curBar:int=60):
         self.data = Data(tickers, period)
         self.tickers = tickers
         self.curBar = curBar if curBar else 0
-        self.q = queue
 
     # Since this is backtesting, we have all the historic data
     # so we can just index it    
     def updateBar(self):
         if(self.curBar >= self.data.num_data):
-            self.q.append(TerminateEvent())
-            return
+            return [TerminateEvent()]
         self.curBar += 1
-        self.q.append(MarketEvent())
-        return 
+        return [MarketEvent()]
+         
     
     def get_last_N_bars(self, symbol, N):
         start, end = max(0, self.curBar - N), self.curBar

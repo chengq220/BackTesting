@@ -2,30 +2,38 @@ from collections import deque
 from backtester.data import DataHandler
 from backtester.strategy import Strategy
 from backtester.portfolio import Portfolio
+from backtester.execution import Executor
 
 class Simulation:
     def __init__(self, tickers:list):
         self.queue = deque()
-        self.bars = DataHandler(tickers, self.queue)
-        self.strategy = Strategy(self.bars, self.queue)
-        self.portfolio = Portfolio()
-        # broker = execution
+        self.bars = DataHandler(tickers)
+        self.strategy = Strategy(self.bars)
+        self.portfolio = Portfolio(10000, self.bars)
+        self.executor = Executor()
     
     def simulate(self):
         while True:
+            ret_event = None
             self.bars.updateBar();
-            event = self.queue.popleft() 
+            ret_event = self.queue.popleft() 
             if event.type == "KILL":
                 print("Terminating")
                 break
             elif event.type == "MARKET":
-                self.strategy.on_market();
+                ret_event = self.strategy.on_market();
             elif event.type == "SIGNAL":
-                self.portfolio.handle_signal(event);
-            # elif event.type == "ORDER":
-            #     self.broker.handle_order(event);
-            # elif event.type == "FILL":
-            #     self.portfolio.handle_fill(event)
+                ret_event = self.portfolio.handle_signal(event);
+            elif event.type == "ORDER":
+                ret_event = self.executor.handle_order(event);
+            elif event.type == "FILL":
+                _ = self.portfolio.handle_fill_event(event)
+            else:
+                raise NotImplementedError
+            
+            if ret_event:
+                for event in ret_event:
+                    self.queue.append(event)
 
     def metrics(self):
         return 0

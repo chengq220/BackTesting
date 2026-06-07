@@ -63,7 +63,7 @@ class FillEvent(Event):
     commission - the fee that are applied 
     """
     def __init__(self, timeindex, symbol, exchange, quantity, 
-                 direction, fill_cost, commission=None):
+                 direction, fill_cost, commission = None):
         super().__init__("FILL") 
         self.time_index = timeindex
         self.symbol = symbol
@@ -71,14 +71,4 @@ class FillEvent(Event):
         self.quantity = quantity
         self.direction = direction
         self.fill_cost = fill_cost
-        
-        self.commission = 0 if not commission else self.compute_coommision()
-
-    def compute_coommision(self):
-        full_cost = 1.3
-        if self.quantity <= 500:
-            full_cost = max(1.3, 0.013 * self.quantity)
-        else: # Greater than 500
-            full_cost = max(1.3, 0.008 * self.quantity)
-        full_cost = min(full_cost, 0.5 / 100.0 * self.quantity * self.fill_cost)
-        return full_cost
+        self.commission = commission if commission else 0

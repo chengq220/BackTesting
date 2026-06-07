@@ -3,12 +3,9 @@ import time
 
 # Answer the question "what is my directional view right now?"
 class Strategy:
-    def __init__(self, data_handler, queue, inst = "MAC"):
+    def __init__(self, data_handler, inst = "MAC"):
         # The market data
         self.data = data_handler
-
-        # The action queue 
-        self.q = queue
 
         # The company tickers we are tracking
         self.tickers = self.data.tickers
@@ -30,9 +27,13 @@ class Strategy:
     # On market event, pulls the latest bars, and generate signal and add those signals back to the queue
     def on_market(self):
         # Generate Signal Events for each of the tickers
+        event_out = []
         for symb in self.tickers:
             symb_direction = self.generate_signal(symb)
-            self.q.append(symb_direction)
+            if(symb_direction != self.direction[symb]): # Only emit signal event if we see a change in the direction
+                event_out.append(symb_direction)
+                self.direction[symb] = symb_direction
+        return event_out
 
     # Strategy used to generate the signals
     def generate_signal(self, ticker):
@@ -67,10 +68,8 @@ class MAC():
 
         if lma_0 and sma_0:
             if(lma_0 - sma_0 > 0 and lma_1 - sma_1 < 0):
-                self.cur_strats = "SHORT"
                 return "SHORT"
             elif(lma_0 - sma_0 < 0 and lma_1 - sma_1 > 0):
-                self.cur_strats = "LONG"
                 return "LONG"
             
         return self.cur_strats
