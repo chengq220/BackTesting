@@ -20,7 +20,8 @@ class Portfolio():
     def on_market(self, prices):
         position_value = 0
         for key in self.position:
-            position_value += self.position[key] * prices[key]
+            key_up = key.upper()
+            position_value += self.position[key_up] * prices[key_up]
         self.equity = self.free_cash +  position_value
         self.portfolio_history.append({
             "free_cash": self.free_cash,
@@ -43,7 +44,7 @@ class Portfolio():
             direction = "SELL"
             quantity = self.position[symbol]
         else:
-            return 
+            return []
         ret_event = OrderEvent(symbol=symbol, 
                                 order_type="MARKET", 
                                 quantity=quantity, 
@@ -55,14 +56,16 @@ class Portfolio():
     # for now sell/shorting is just going to be sell all of the assets
     # and return it to free-cash for simplicity 
     def __update_sell(self, event):
-        share_sold = self.position[event.symbol]
-        self.position[event.symbol] = 0
+        symb_upper = event.symbol.upper()
+        share_sold = self.position[symb_upper]
+        self.position[symb_upper] = 0
         self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
         return 1
 
     # Handle the updating for buy
     def __update_buy(self, event):
-        self.position[event.symbol] += event.quantity
+        symb_upper = event.symbol.upper()
+        self.position[symb_upper] += event.quantity
         self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
         return 1
     
@@ -74,7 +77,7 @@ class Portfolio():
             _ = self.__update_buy(event)
         position_value = 0
         for symb in self.position:
-            position_value += self.position[symb] * event.fill_cost
+            position_value += self.position[symb.upper()] * event.fill_cost
         self.equity = self.free_cash + position_value
         self.trade_log.append(event)
         return 1

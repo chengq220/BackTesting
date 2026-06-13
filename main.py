@@ -6,42 +6,46 @@ from backtester.execution import Executor
 
 class Simulation:
     def __init__(self, tickers:list):
-        self.queue = deque()
-        self.bars = DataHandler(tickers)
-        self.strategy = Strategy(self.bars)
-        self.portfolio = Portfolio(10000)
-        self.executor = Executor(self.bars)
+        self.__queue = deque()
+        self.__bars = DataHandler(tickers)
+        self.__strategy = Strategy(self.__bars)
+        self.__portfolio = Portfolio(10000)
+        self.__executor = Executor("NASDAQ", self.__bars)
     
+    def update_queue(self, events):
+        for event in events:
+            self.__queue.append(event)
+
     def simulate(self):
         while True:
-            ret_event = None
-            self.bars.updateBar()
-            ret_event = self.queue.popleft() 
+            self.update_queue(self.__bars.updateBar())
+            event = self.__queue.popleft() 
+
             if event.type == "KILL":
                 print("Terminating")
                 break
             elif event.type == "MARKET":
                 prices = {}
-                for tick in self.bars.tickers:
-                    prices[tick] = self.bars.get_last_N_bars(tick, 1)[-1]
-                _ = self.portfolio.on_market(prices)
-                ret_event = self.strategy.on_market()
+                for tick in self.__bars.tickers:
+                    prices[tick.upper()] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
+                _ = self.__portfolio.on_market(prices)
+                self.update_queue(self.__strategy.on_market())
             elif event.type == "SIGNAL":
-                ret_event = self.portfolio.handle_signal(event)
+                self.update_queue(self.__portfolio.handle_signal_event(event))
             elif event.type == "ORDER":
-                ret_event = self.executor.handle_order(event)
+                self.update_queue(self.__executor.execute_order(event))
             elif event.type == "FILL":
-                _ = self.portfolio.handle_fill_event(event)
+                _ = self.__portfolio.handle_fill_event(event)
             else:
                 raise NotImplementedError
-            
-            if ret_event:
-                for event in ret_event:
-                    self.queue.append(event)
-
+    
+    def get_portfolio_history(self):
+        return self.__portfolio.portfolio_history
+    
     def metrics(self):
         return 0
     
 if __name__ == "__main__":
-    sim = Simulation(["aapl", "msft"])
+    sim = Simulation(["msft"])
     sim.simulate()
+    print(sim.get_portfolio_history())

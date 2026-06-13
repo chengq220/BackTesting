@@ -31,8 +31,8 @@ class Executor():
         order_type = event.order_type
         direction = event.direction
         
-        symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1]
-        time_index = datetime.now()
+        symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1].item()
+        time_index = datetime.datetime.now()
 
         share_quantity = self.__buy_order(event, symb_close_price) if direction == "BUY" else self.__sell_order(event, symb_close_price)
         commission = self.fee

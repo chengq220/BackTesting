@@ -1,7 +1,7 @@
 import yfinance as yf
+# from event import MarketEvent, TerminateEvent
 from backtester.event import MarketEvent, TerminateEvent
 from collections import deque
-# from event import MarketEvent, TerminateEvent
 
 class Data:
     def __init__(self, tickers:list, period:str="6mo"):
@@ -40,15 +40,19 @@ class DataHandler:
             return [TerminateEvent()]
         self.curBar += 1
         return [MarketEvent()]
-         
     
+    #get up to the past 60 days of data 
     def get_last_N_bars(self, symbol, N):
         start, end = max(0, self.curBar - N), self.curBar
-        last_N = self.data.get_data()[symbol.upper()].iloc[start:end]
+        last_N = self.data.get_data()[symbol.upper()].iloc[start:end]["Close"].to_numpy()
         return last_N
 
 
 if __name__ == "__main__":
     from collections import deque
     queue = deque()
-    sim = DataHandler(["aapl", "msft"], queue)
+    data = DataHandler(["aapl"])
+    stk_price = data.get_last_N_bars("aapl", 10)
+    print(stk_price)
+    print(data.get_last_N_bars("aapl", 10).mean())
+    print(data.get_last_N_bars("aapl", 10)[-5:].mean())

@@ -29,6 +29,7 @@ class Strategy:
         # Generate Signal Events for each of the tickers
         event_out = []
         for symb in self.tickers:
+            symb = symb.upper()
             symb_direction = self.generate_signal(symb)
             if(symb_direction != self.direction[symb]): # Only emit signal event if we see a change in the direction
                 event_out.append(symb_direction)
@@ -57,8 +58,8 @@ class MAC():
     return [long, short, out]
     """
     def get_signal(self, dt):
-        lma_1 = dt["Close"].mean().iloc[0]
-        sma_1 = dt["Close"][-30:].mean().iloc[0]
+        lma_1 = dt.mean()
+        sma_1 = dt[-30:].mean()
         
         lma_0 = self.lma[-1] if len(self.lma) > 0 else None
         sma_0 = self.sma[-1] if len(self.sma) > 0 else None
