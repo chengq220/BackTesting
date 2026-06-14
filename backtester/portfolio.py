@@ -8,8 +8,12 @@ Portfolio class to simulate one's investment portfolio
 class Portfolio():
     """
     Contains fields such as free_cash, equity, position, trade logs, historys
+    parameters:
+    initial_cash - the starting capital
+    sizing_rule - how much are invested each time a investment is made
+    frequency - how often are investment signal getting send (in days)
     """
-    def __init__(self, inital_cash, sizing_rule = "100"):
+    def __init__(self, inital_cash, sizing_rule = "10000", frequency = 1):
         self.free_cash = inital_cash # Un-invested cash
         self.equity = inital_cash # Free_cash + value of position
         if sizing_rule.isnumeric():
@@ -17,10 +21,11 @@ class Portfolio():
             
         else:
             self.sizing_rule = None
+        self.frequency = frequency
         self.position = defaultdict(int)
         self.trade_log = []
         self.portfolio_history = []
-        self.lower_bound = 1.0
+        self.last_buy = 0
 
     # Update the equity in the portfolio on the market event
     def on_market(self, prices):
@@ -41,28 +46,36 @@ class Portfolio():
     # Don't have to check if we have enough money because we only send the order in dollar amount for buy
     # and also share amount for sell. Therefore, no complex checking need to be done
     def handle_signal_event(self, event):
-        sig_direction = event.direction
-        symbol = event.symbol
-        dt = datetime.now()
-        if sig_direction == "LONG":
-            direction = "BUY"
-            quantity = self.__compute_buy_quantity()
-        elif sig_direction == "SHORT":
-            direction = "SELL"
-            quantity = self.position[symbol]
-        else:
-            return []
-        ret_event = OrderEvent(symbol=symbol, 
-                                order_type="MARKET", 
-                                quantity=quantity, 
-                                datetime=dt, 
-                                direction=direction)
-        return [ret_event]
-    
+        # only buy according to the frequency
+        ret_event = None
+        if self.last_buy % self.frequency == 0: 
+            sig_direction = event.direction
+            symbol = event.symbol
+            dt = datetime.now()
+            if sig_direction == "LONG":
+                direction = "BUY"
+                quantity = self.__compute_buy_quantity()
+            elif sig_direction == "SHORT":
+                direction = "SELL"
+                quantity = self.position[symbol]
+            else:
+                return []
+            ret_event = OrderEvent(symbol=symbol, 
+                                    order_type="MARKET", 
+                                    quantity=quantity, 
+                                    datetime=dt, 
+                                    direction=direction)
+
+        # Update last buy
+        self.last_buy += (self.last_buy + 1) % self.frequency
+        if ret_event and ret_event.quantity > 0:
+            return [ret_event]
+        return []
+
     # Different ways to identify sizing of the quantity for buying
     def __compute_buy_quantity(self):
         if self.sizing_rule:
-            if self.free_cash < self.lower_bound:
+            if self.free_cash < 1.0: # each available trade must have value > $1
                 return 0
             if self.free_cash < self.sizing_rule:
                 return self.free_cash

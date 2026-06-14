@@ -12,7 +12,7 @@ class Simulation:
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
         self.__strategy = Strategy(self.__bars, inst="DAC")
-        self.__portfolio = Portfolio(10000, sizing_rule = "1000")
+        self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     
     def update_queue(self, events):
@@ -22,8 +22,7 @@ class Simulation:
     def simulate(self):
         while True:
             self.update_queue(self.__bars.updateBar())
-            event = self.__queue.popleft() 
-
+            event = self.__queue.popleft()
             if event.type == "KILL":
                 print("Terminating")
                 break
@@ -60,4 +59,5 @@ if __name__ == "__main__":
 
     t = np.arange(0, len(hist["equity"]))
     plt.plot(t, hist["equity"], linestyle = 'dotted')
+    plt.plot(t, hist["free_cash"], linestyle = 'solid')
     plt.show()
