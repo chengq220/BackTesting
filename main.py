@@ -19,27 +19,32 @@ class Simulation:
         for event in events:
             self.__queue.append(event)
 
-    def simulate(self):
-        while True:
+    def simulate(self, backtest = True):
+        terminate = False
+        # Double while loops make sure that each bar are separated events so no mixing events between days
+        # This avoids having multiple market events in the queue
+        while backtest and not terminate:
             self.update_queue(self.__bars.updateBar())
-            event = self.__queue.popleft()
-            if event.type == "KILL":
-                print("Terminating")
-                break
-            elif event.type == "MARKET":
-                prices = {}
-                for tick in self.__bars.tickers:
-                    prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
-                _ = self.__portfolio.on_market(prices)
-                self.update_queue(self.__strategy.on_market())
-            elif event.type == "SIGNAL":
-                self.update_queue(self.__portfolio.handle_signal_event(event))
-            elif event.type == "ORDER":
-                self.update_queue(self.__executor.execute_order(event))
-            elif event.type == "FILL":
-                _ = self.__portfolio.handle_fill_event(event)
-            else:
-                raise NotImplementedError
+            while len(self.__queue) > 0:
+                event = self.__queue.popleft()
+                print(event.type)
+                if event.type == "KILL":
+                    print("Terminating")
+                    terminate = True
+                elif event.type == "MARKET":
+                    prices = {}
+                    for tick in self.__bars.tickers:
+                        prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
+                    _ = self.__portfolio.on_market(prices)
+                    self.update_queue(self.__strategy.on_market())
+                elif event.type == "SIGNAL":
+                    self.update_queue(self.__portfolio.handle_signal_event(event))
+                elif event.type == "ORDER":
+                    self.update_queue(self.__executor.execute_order(event))
+                elif event.type == "FILL":
+                    _ = self.__portfolio.handle_fill_event(event)
+                else:
+                    raise NotImplementedError
     
     def get_portfolio_history(self):
         processed = defaultdict(list)
