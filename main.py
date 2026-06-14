@@ -11,7 +11,7 @@ class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars, inst="DAC")
+        self.__strategy = Strategy(self.__bars, inst="MAC")
         self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     
@@ -27,7 +27,6 @@ class Simulation:
             self.update_queue(self.__bars.updateBar())
             while len(self.__queue) > 0:
                 event = self.__queue.popleft()
-                print(event.type)
                 if event.type == "KILL":
                     print("Terminating")
                     terminate = True
@@ -53,9 +52,6 @@ class Simulation:
             for key in cur_dict.keys():
                 processed[key].append(cur_dict[key])
         return processed
-    
-    def metrics(self):
-        return 0
     
 if __name__ == "__main__":
     sim = Simulation(["IVV"])

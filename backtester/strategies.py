@@ -10,7 +10,7 @@ class Strategy():
         for symb in self.tickers:
             self.direction[symb.upper()] = "OUT"
     
-    def on_market(self):
+    def on_market(self, args):
         pass
 
 class MAC(Strategy):
@@ -24,21 +24,21 @@ class MAC(Strategy):
         self.cur_strats = "OUT"
     
     # On market event, pulls the latest bars, and generate signal and add those signals back to the queue
-    def on_market(self):
+    def on_market(self, args):
         # Generate Signal Events for each of the tickers
         event_out = []
         for symb in self.tickers:
             symb = symb.upper()
-            symb_direction = self.generate_signal(symb)
+            symb_direction = self.generate_signal(symb, args['dt'])
             if(symb_direction != self.direction[symb]): # Only emit signal event if we see a change in the direction
                 event_out.append(symb_direction)
                 self.direction[symb] = symb_direction
         return event_out
 
     # Strategy used to generate the signals
-    def generate_signal(self, ticker):
-        dt = self.data.get_last_N_bars(ticker, 60)
-        direction = self.strats.get_signal(dt)
+    def generate_signal(self, ticker, data):
+        dt = data.get_last_N_bars(ticker, 60)
+        direction = self.get_signal(dt)
         datetime = time.time()
         output = SignalEvent(ticker, datetime, direction)
         return output
@@ -77,7 +77,7 @@ class DCA_LS(Strategy):
     """
     Dollar Cost Averaging/Lump Sum Signals
     """
-    def on_market(self):
+    def on_market(self, args):
         output = []
         for ticker in self.tickers:
             datetime = time.time()

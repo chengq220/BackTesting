@@ -11,7 +11,7 @@ class StrategyContainer:
 
         # The strategy used for the signal
         if(inst == "MAC"):
-            self.strats = MAC(self.tickers, self.data)
+            self.strats = MAC(self.tickers)
         elif(inst == "DAC" or inst == "LS"):
             self.strats = DCA_LS(self.tickers)
         elif(inst == "NN"):
@@ -21,7 +21,9 @@ class StrategyContainer:
 
     # Retrieve the response to a on-market signal for each strategy
     def on_market(self):
-        return self.strats.on_market()
+        return self.strats.on_market({
+            'dt': self.data
+        })
             
 
         
