@@ -30,7 +30,7 @@ class Simulation:
             elif event.type == "MARKET":
                 prices = {}
                 for tick in self.__bars.tickers:
-                    prices[tick.upper()] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
+                    prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
                 _ = self.__portfolio.on_market(prices)
                 self.update_queue(self.__strategy.on_market())
             elif event.type == "SIGNAL":

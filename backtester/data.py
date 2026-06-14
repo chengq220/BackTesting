@@ -13,13 +13,12 @@ class Data:
 
     def __download__(self, tickers:str, period):
         for tick in tickers:
-            up_tick = tick.upper()
             if period:
-                stock_info = yf.download([up_tick], auto_adjust=True, period=period)
+                stock_info = yf.download([tick], auto_adjust=True, period=period)
             else:
-                stock_info = yf.download([up_tick], auto_adjust=True)
-            self.stocks[up_tick] = stock_info
-        self.num_data = len(self.stocks[tickers[0].upper()])
+                stock_info = yf.download([tick], auto_adjust=True)
+            self.stocks[tick] = stock_info
+        self.num_data = len(self.stocks[tickers[0]])
 
     def get_data(self):
         return self.stocks
@@ -31,6 +30,8 @@ class DataHandler:
     def __init__(self, tickers:list, period:str="1y", curBar:int=60):
         self.data = Data(tickers, period)
         self.tickers = tickers
+        for idx, tick in enumerate(self.tickers):
+            self.tickers[idx] = tick.upper()
         self.curBar = curBar if curBar else 0
 
     # Since this is backtesting, we have all the historic data
@@ -44,7 +45,7 @@ class DataHandler:
     #get up to the past 60 days of data 
     def get_last_N_bars(self, symbol, N):
         start, end = max(0, self.curBar - N), self.curBar
-        last_N = self.data.get_data()[symbol.upper()].iloc[start:end]["Close"].to_numpy()
+        last_N = self.data.get_data()[symbol].iloc[start:end]["Close"].to_numpy()
         return last_N
 
 
