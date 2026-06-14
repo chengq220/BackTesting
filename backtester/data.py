@@ -52,8 +52,6 @@ class DataHandler:
 if __name__ == "__main__":
     from collections import deque
     queue = deque()
-    data = DataHandler(["aapl"])
-    stk_price = data.get_last_N_bars("aapl", 10)
+    data = DataHandler(["ivv"])
+    stk_price = data.get_last_N_bars("ivv", 2)
     print(stk_price)
-    print(data.get_last_N_bars("aapl", 10).mean())
-    print(data.get_last_N_bars("aapl", 10)[-5:].mean())

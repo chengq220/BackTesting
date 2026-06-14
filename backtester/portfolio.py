@@ -20,6 +20,7 @@ class Portfolio():
         self.position = defaultdict(int)
         self.trade_log = []
         self.portfolio_history = []
+        self.lower_bound = 1.0
 
     # Update the equity in the portfolio on the market event
     def on_market(self, prices):
@@ -61,6 +62,8 @@ class Portfolio():
     # Different ways to identify sizing of the quantity for buying
     def __compute_buy_quantity(self):
         if self.sizing_rule:
+            if self.free_cash < self.lower_bound:
+                return 0
             if self.free_cash < self.sizing_rule:
                 return self.free_cash
             return self.sizing_rule
