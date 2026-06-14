@@ -1,15 +1,18 @@
 from collections import deque
 from backtester.data import DataHandler
-from backtester.strategy import Strategy
+from backtester.strategyContainer import StrategyContainer as Strategy
 from backtester.portfolio import Portfolio
 from backtester.execution import Executor
+from collections import defaultdict
+import matplotlib.pyplot as plt
+import numpy as np
 
 class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars)
-        self.__portfolio = Portfolio(10000)
+        self.__strategy = Strategy(self.__bars, inst="DAC")
+        self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     
     def update_queue(self, events):
@@ -40,12 +43,21 @@ class Simulation:
                 raise NotImplementedError
     
     def get_portfolio_history(self):
-        return self.__portfolio.portfolio_history
+        processed = defaultdict(list)
+        for idx in range(len(self.__portfolio.portfolio_history)):
+            cur_dict = self.__portfolio.portfolio_history[idx]
+            for key in cur_dict.keys():
+                processed[key].append(cur_dict[key])
+        return processed
     
     def metrics(self):
         return 0
     
 if __name__ == "__main__":
-    sim = Simulation(["msft"])
+    sim = Simulation(["IVV"])
     sim.simulate()
-    print(sim.get_portfolio_history())
+    hist = sim.get_portfolio_history()
+
+    t = np.arange(0, len(hist["equity"]))
+    plt.plot(t, hist["equity"], linestyle = 'dotted')
+    plt.show()

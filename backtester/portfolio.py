@@ -9,14 +9,19 @@ class Portfolio():
     """
     Contains fields such as free_cash, equity, position, trade logs, historys
     """
-    def __init__(self, inital_cash):
+    def __init__(self, inital_cash, sizing_rule = "100"):
         self.free_cash = inital_cash # Un-invested cash
         self.equity = inital_cash # Free_cash + value of position
+        if sizing_rule.isnumeric():
+            self.sizing_rule = int(sizing_rule)
+            
+        else:
+            self.sizing_rule = None
         self.position = defaultdict(int)
         self.trade_log = []
         self.portfolio_history = []
 
-    # Update the equity of the portfolio on the market event
+    # Update the equity in the portfolio on the market event
     def on_market(self, prices):
         position_value = 0
         for key in self.position:
@@ -33,13 +38,15 @@ class Portfolio():
         
     # Process the Signal Event and emit a more specific signal which is 
     # passed to the executor
+    # Don't have to check if we have enough money because we only send the order in dollar amount for buy
+    # and also share amount for sell. Therefore, no complex checking need to be done
     def handle_signal_event(self, event):
         sig_direction = event.direction
         symbol = event.symbol
         dt = datetime.now()
         if sig_direction == "LONG":
             direction = "BUY"
-            quantity = self.free_cash
+            quantity = self.__compute_buy_quantity()
         elif sig_direction == "SHORT":
             direction = "SELL"
             quantity = self.position[symbol]
@@ -51,6 +58,15 @@ class Portfolio():
                                 datetime=dt, 
                                 direction=direction)
         return [ret_event]
+    
+    # Different ways to identify sizing of the quantity for buying
+    def __compute_buy_quantity(self):
+        if self.sizing_rule:
+            if self.free_cash < self.sizing_rule:
+                return self.free_cash
+            return self.sizing_rule
+        else:
+            return 0
     
     # Handles the updating for sell
     # for now sell/shorting is just going to be sell all of the assets
