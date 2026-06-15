@@ -4,11 +4,6 @@ import time
 class Strategy():
     def __init__(self, tickers):
         self.tickers = tickers
-        # initialize the direction to "OUT" because there is no 
-        # position (other choices are SHORT/LONG)
-        self.direction = {}
-        for symb in self.tickers:
-            self.direction[symb.upper()] = "OUT"
     
     def on_market(self, args):
         pass
@@ -21,7 +16,6 @@ class MAC(Strategy):
         super().__init__(tickers)
         self.lma = []
         self.sma = []
-        self.cur_strats = "OUT"
     
     # On market event, pulls the latest bars, and generate signal and add those signals back to the queue
     def on_market(self, args):
@@ -30,9 +24,7 @@ class MAC(Strategy):
         for symb in self.tickers:
             symb = symb.upper()
             symb_direction = self.generate_signal(symb, args['dt'])
-            if(symb_direction != self.direction[symb]): # Only emit signal event if we see a change in the direction
-                event_out.append(symb_direction)
-                self.direction[symb] = symb_direction
+            event_out.append(symb_direction)
         return event_out
 
     # Strategy used to generate the signals
@@ -47,7 +39,7 @@ class MAC(Strategy):
     Compute the directional signal for the stock using the moving average 
     @param dt - 60 days stock ending prices
 
-    return [long, short, out]
+    return [long, short, OUT]
     """
     def get_signal(self, dt):
         lma_1 = dt.mean()
@@ -64,9 +56,8 @@ class MAC(Strategy):
                 return "SHORT"
             elif(lma_0 - sma_0 < 0 and lma_1 - sma_1 > 0):
                 return "LONG"
-            
-        return self.cur_strats
-        
+        else:
+            return "OUT"
 class DCA_LS(Strategy):
     """
     Dollar Cost Averaging/Lump Sum

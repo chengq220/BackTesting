@@ -15,7 +15,7 @@ class Simulation:
         self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     
-    def update_queue(self, events):
+    def __update_queue(self, events):
         for event in events:
             self.__queue.append(event)
 
@@ -24,7 +24,7 @@ class Simulation:
         # Double while loops make sure that each bar are separated events so no mixing events between days
         # This avoids having multiple market events in the queue
         while backtest and not terminate:
-            self.update_queue(self.__bars.updateBar())
+            self.__update_queue(self.__bars.updateBar())
             while len(self.__queue) > 0:
                 event = self.__queue.popleft()
                 if event.type == "KILL":
@@ -43,6 +43,7 @@ class Simulation:
                 elif event.type == "FILL":
                     _ = self.__portfolio.handle_fill_event(event)
                 else:
+                    print("You are not suppose to be here!")
                     raise NotImplementedError
     
     def get_portfolio_history(self):
