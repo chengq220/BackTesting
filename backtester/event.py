@@ -32,7 +32,7 @@ class OrderEvent(Event):
     """
     symbol - ticker symbol
     datetime - the time stamp for the signal
-    direction - buy/sell
+    direction - buy/sell/short/cover
     order_type - market or limit
     quantity - the cash amount of stocks to buy/sell
     """

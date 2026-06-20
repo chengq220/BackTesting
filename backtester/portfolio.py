@@ -25,11 +25,20 @@ class Portfolio():
         else:
             self.sizing_rule = None
         self.frequency = frequency
+
+        # {0:"SHORT", 1:"OUT", 2:"LONG"}
+        # Assume that at any time, we are only at 1 position for any stock
         self.position = defaultdict(lambda: 1) # Position all starts with 2 which corresponds to OUT
+
+        # Assume that 
         self.inventory = defaultdict(int) # Number of stocks you are holding
         self.trade_log = []
         self.portfolio_history = []
         self.last_buy = 0
+
+        # Logic: from long to short : sell position -> out -> sell position
+        # Logic from short to long : buy position that's owed -> out -> buy position
+        # Possible states: "None", "BUY", "SHORT"
         self.pending = None
 
     # Update the equity in the portfolio on the market event
@@ -103,26 +112,39 @@ class Portfolio():
         self.inventory[event.symbol] = 0
         self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
         return 1
-
-    # Handle the updating for buy
-    def __update_buy(self, event):
-        self.inventory[event.symbol] += event.quantity
-        self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
-        return 1
     
-    # Update the portfolio to reflect the position change
-    def handle_fill_event(self, event):
-        if event.direction == "SELL":
-            self.position[event.symbol] -= min(0, self.position[event.symbol]-1)
+    def __update_position_inv(self, event):
+        if event.direction == "SELL": # Need to be in long position to sell 
+            self.position[event.symbol] = 0
+
+            share_sold = self.inventory[event.symbol]
+            self.inventory[event.symbol] = 0
+            self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
             _ = self.__update_sell(event) # Flat
-        elif event.direction == "BUY":
-            self.position[event.symbol] += max(2, self.position[event.symbol]+1)
-            _ = self.__update_buy(event)
+        elif event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
+            self.position[event.symbol] = 0
+
+            self.inventory[event.symbol] -= event.quantity
+            pass
+        elif event.direction == "COVER": # need to be in the short position to cover (essentially same as buying)
+            self.position[event.symbol] = 1
+            pass
+        elif event.direction == "BUY": # need to be in out position/long position to buy
+            self.position[event.symbol] = 2
+
+            self.inventory[event.symbol] += event.quantity
+            self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
+        
         inventory_value = 0
         for symb in self.inventory:
             inventory_value += self.inventory[symb] * event.fill_cost
         self.equity = self.free_cash + inventory_value
         self.trade_log.append(event)
+
+        
+    # Update the portfolio to reflect the position change
+    def handle_fill_event(self, event):
+        self.__update_position_inv(event)
         
         # If there is another step that needs to be taken
         if self.pending:
