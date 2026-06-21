@@ -2,7 +2,7 @@ from backtester.event import FillEvent
 import datetime
 
 """
-Act like the exchange
+Act like an exchange and fills the order event
 """
 class Executor():
     def __init__(self, exchange, data, has_fee=True):
@@ -30,11 +30,12 @@ class Executor():
         symbol = event.symbol
         order_type = event.order_type
         direction = event.direction
+        quantity_type = event.type
         
         symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1].item()
         time_index = datetime.datetime.now()
 
-        share_quantity = self.__buy_order(event, symb_close_price) if direction == "BUY" else self.__sell_order(event, symb_close_price)
+        share_quantity = self.__buy_order(event, symb_close_price, quantity_type) if direction == "BUY" else self.__sell_order(event, symb_close_price, quantity_type)
         commission = self.fee
         
         ret_event = FillEvent(timeindex=time_index,

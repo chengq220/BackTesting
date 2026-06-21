@@ -35,21 +35,24 @@ class OrderEvent(Event):
     direction - buy/sell/short/cover
     order_type - market or limit
     quantity - the cash amount of stocks to buy/sell
+    type - whether it is cash or stocks (0 for cash, 1 for stock)
     """
-    def __init__(self, symbol, datetime, direction, order_type, quantity):
+    def __init__(self, symbol, datetime, direction, order_type, quantity, type):
         super().__init__("ORDER") 
         self.symbol = symbol
         self.order_type = order_type
         self.quantity = quantity
         self.datetime = datetime
         self.direction = direction
+        self.type = type
 
     def print_order(self):
         """
         Outputs the values within the Order.
         """
-        print("At time%s , Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s" % \
-            (self.datetime, self.symbol, self.order_type, self.quantity, self.direction))
+        quantity_type = "STOCK" if self.type == 1 else "CASH" 
+        print("At time%s , Order: Symbol=%s, Type=%s, Quantity=%s (# in %s), Direction=%s" % \
+            (self.datetime, self.symbol, self.order_type, self.quantity, quantity_type, self.direction))
 
 # Execute the trade
 class FillEvent(Event):

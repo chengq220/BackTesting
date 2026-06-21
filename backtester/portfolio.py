@@ -35,7 +35,9 @@ class Portfolio():
         self.inventory = defaultdict(int) # Number of stocks you are holding
         self.trade_log = []
         self.portfolio_history = []
+
         self.last_buy = 0
+        self.max_short = 2000
 
         # Logic: from long to short : sell position -> out -> sell position
         # Logic from short to long : buy position that's owed -> out -> buy position
@@ -55,6 +57,35 @@ class Portfolio():
         })
 
         return 1
+    
+        # Different ways to identify sizing of the quantity for buying
+    def __compute_buy_quantity(self, symbol, direction = "BUY"):
+        if direction == "BUY": # If in buy, the quantity is in dollar 
+            if self.sizing_rule: 
+                if self.free_cash < 1.0: # each available trade must have value > $1
+                    return 0, 0
+                if self.free_cash < self.sizing_rule:
+                    return self.free_cash, 0
+                return self.sizing_rule, 0
+            else:
+                return 0, 0
+        elif direction == "COVER": # If in cover the quantity is in stocks
+            return -1 * self.inventory[symbol], 1
+        else:
+            print("You are not suppose to be here!")
+            raise NotImplementedError
+
+        
+    def __compute_sell_quantity(self, symbol, direction = "SELL"):
+        # For simplicity, when buying back owed stocks in shorting
+        # this backtester assume you have to return all not just partially 
+        if direction == "SELL": # if in sell, quantity is the # of stocks
+            return self.inventory[symbol], 1 # Number of stocks
+        elif direction == "SHORT": # If shorting, the quantity is the total amount in dollar to short (fixed amount)
+            return self.max_short, 0
+        else:
+            print("You are not suppose to be here!")
+            raise NotImplementedError
         
     # Process the Signal Event and emit a more specific signal which is 
     # passed to the executor
@@ -71,11 +102,11 @@ class Portfolio():
             if position_change: 
                 if event.direction == "LONG":
                     direction = "COVER"
-                    quantity = self.__compute_buy_quantity()
+                    quantity, quantity_type = self.__compute_buy_quantity(event.symbol, direction)
                     self.pending = "BUY"
                 elif event.direction == "SHORT":
                     direction = "SELL"
-                    quantity = self.__compute_sell_quantity(event.symbol)
+                    quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
                     self.pending = "SHORT"
             else:
                 self.pending = None
@@ -84,29 +115,14 @@ class Portfolio():
                                     order_type="MARKET", 
                                     quantity=quantity, 
                                     datetime=dt, 
-                                    direction=direction)
+                                    direction=direction,
+                                    type=quantity_type)
 
         # Update last buy
         self.last_buy += (self.last_buy + 1) % self.frequency
         if ret_event and ret_event.quantity > 0:
             return [ret_event]
         return []
-
-    # Different ways to identify sizing of the quantity for buying
-    def __compute_buy_quantity(self):
-        if self.sizing_rule:
-            if self.free_cash < 1.0: # each available trade must have value > $1
-                return 0
-            if self.free_cash < self.sizing_rule:
-                return self.free_cash
-            return self.sizing_rule
-        else:
-            return 0
-        
-    def __compute_sell_quantity(self, symbol):
-        # For simplicity, when buying back owed stocks in shorting
-        # this backtester assume you have to return all not just partially 
-        return self.inventory[symbol]
     
     def __update_position_inv(self, event):
         if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
@@ -149,16 +165,14 @@ class Portfolio():
         # If there is another step that needs to be taken
         if self.pending:
             dt = datetime.now()
-            direction = self.pending
-            quantity = self.__compute_buy_quantity() if direction else self.__compute_sell_quantity(event.symbol)
+            if self.pending == "BUY":
+                quantity = self.__compute_buy_quantity()
+            elif self.pending == "SHORT":
+                self.__compute_sell_quantity(event.symbol, self.pending)
             self.pending = None
             return [OrderEvent(symbol=event.symbol, 
                                     order_type="MARKET", 
                                     quantity=quantity, 
                                     datetime=dt, 
-                                    direction=direction)]
+                                    direction=self.pending)]
         return 1
-
-
-        
-
