@@ -97,14 +97,15 @@ class Portfolio():
         if self.last_buy % self.frequency == 0: 
             dt = datetime.now()
             position_change = event.direction == self.position[event.symbol]
+            
             # regardless of the positoin, the main functions are the same except for how they are handled
             # and how many time the signals are emitted for position changed from short -> long and long -> short
             if position_change: 
                 if event.direction == "LONG":
-                    direction = "COVER"
+                    direction = "COVER" # when exiting out of a short position, if not enough money, go into debt
                     quantity, quantity_type = self.__compute_buy_quantity(event.symbol, direction)
                     self.pending = "BUY"
-                elif event.direction == "SHORT":
+                elif event.direction == "SHORT": # 
                     direction = "SELL"
                     quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
                     self.pending = "SHORT"
@@ -128,7 +129,7 @@ class Portfolio():
         if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
             self.position[event.symbol] = 0
             
-            share_sold = event.quantity/(event.fill_cost + event.commission)
+            share_sold = event.quantity // event.fill_cost
             self.inventory[event.symbol] = -1 * share_sold
             self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
 
