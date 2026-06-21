@@ -58,7 +58,7 @@ class FillEvent(Event):
     symbol - ticker symbol
     exchange - from which exchange the order is filled
     quantity - the number of stocks to buy/sell
-    direction - buy/sell
+    direction - buy/sell/short/cover
     fill_cost - the total cost for the order
     commission - the fee that are applied 
     """

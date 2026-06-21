@@ -1,6 +1,7 @@
 from backtester.event import OrderEvent
 from collections import defaultdict
 from datetime import datetime
+import math
 
 
 POSITION_INDICES = {0:"SHORT", 1:"OUT", 2:"LONG"}
@@ -69,12 +70,15 @@ class Portfolio():
             # and how many time the signals are emitted for position changed from short -> long and long -> short
             if position_change: 
                 if event.direction == "LONG":
-                    direction = "BUY"
+                    direction = "COVER"
                     quantity = self.__compute_buy_quantity()
+                    self.pending = "BUY"
                 elif event.direction == "SHORT":
                     direction = "SELL"
                     quantity = self.__compute_sell_quantity(event.symbol)
+                    self.pending = "SHORT"
             else:
+                self.pending = None
                 return []
             ret_event = OrderEvent(symbol=event.symbol, 
                                     order_type="MARKET", 
@@ -104,35 +108,31 @@ class Portfolio():
         # this backtester assume you have to return all not just partially 
         return self.inventory[symbol]
     
-    # Handles the updating for sell
-    # for now sell/shorting is just going to be sell all of the assets
-    # and return it to free-cash for simplicity 
-    def __update_sell(self, event):
-        share_sold = self.inventory[event.symbol]
-        self.inventory[event.symbol] = 0
-        self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
-        return 1
-    
     def __update_position_inv(self, event):
-        if event.direction == "SELL": # Need to be in long position to sell 
+        if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
             self.position[event.symbol] = 0
+            
+            share_sold = event.quantity/(event.fill_cost + event.commission)
+            self.inventory[event.symbol] = -1 * share_sold
+            self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
+
+        elif event.direction == "SELL": # Need to be in long position to sell 
+            self.position[event.symbol] = 1
 
             share_sold = self.inventory[event.symbol]
             self.inventory[event.symbol] = 0
             self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
-            _ = self.__update_sell(event) # Flat
-        elif event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
-            self.position[event.symbol] = 0
-
-            self.inventory[event.symbol] -= event.quantity
-            pass
+        
         elif event.direction == "COVER": # need to be in the short position to cover (essentially same as buying)
             self.position[event.symbol] = 1
-            pass
+
+            self.inventory[event.symbol] = 0
+            self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
+
         elif event.direction == "BUY": # need to be in out position/long position to buy
             self.position[event.symbol] = 2
 
-            self.inventory[event.symbol] += event.quantity
+            self.inventory[event.symbol] = event.quantity
             self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
         
         inventory_value = 0
