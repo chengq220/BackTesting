@@ -27,6 +27,7 @@ class Simulation:
             self.__update_queue(self.__bars.updateBar())
             while len(self.__queue) > 0:
                 event = self.__queue.popleft()
+                print(event.type)
                 if event.type == "KILL":
                     print("Terminating")
                     terminate = True
@@ -35,11 +36,11 @@ class Simulation:
                     for tick in self.__bars.tickers:
                         prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
                     _ = self.__portfolio.on_market(prices)
-                    self.update_queue(self.__strategy.on_market())
+                    self.__update_queue(self.__strategy.on_market())
                 elif event.type == "SIGNAL":
-                    self.update_queue(self.__portfolio.handle_signal_event(event))
+                    self.__update_queue(self.__portfolio.handle_signal_event(event))
                 elif event.type == "ORDER":
-                    self.update_queue(self.__executor.execute_order(event))
+                    self.__update_queue(self.__executor.execute_order(event))
                 elif event.type == "FILL":
                     _ = self.__portfolio.handle_fill_event(event)
                 else:
