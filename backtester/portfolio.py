@@ -1,10 +1,6 @@
 from backtester.event import OrderEvent
 from collections import defaultdict
 from datetime import datetime
-import math
-
-
-POSITION_INDICES = {0:"SHORT", 1:"OUT", 2:"LONG"}
 
 """
 Portfolio class to simulate one's investment portfolio
@@ -29,7 +25,7 @@ class Portfolio():
 
         # {0:"SHORT", 1:"OUT", 2:"LONG"}
         # Assume that at any time, we are only at 1 position for any stock
-        self.position = defaultdict(lambda: 1) # Position all starts with 2 which corresponds to OUT
+        self.position = defaultdict(lambda: "OUT") # Position all starts "OUT"
 
         # Assume that 
         self.inventory = defaultdict(int) # Number of stocks you are holding
@@ -48,7 +44,7 @@ class Portfolio():
     def on_market(self, prices):
         inventory_value = 0
         for key in self.inventory:
-            inventory_value += self.inventory[key] * prices[key]
+            inventory_value += abs(self.inventory[key]) * prices[key]
         self.equity = self.free_cash + inventory_value
         self.portfolio_history.append({
             "free_cash": self.free_cash,
@@ -58,19 +54,19 @@ class Portfolio():
 
         return 1
     
-        # Different ways to identify sizing of the quantity for buying
+    # Different ways to identify sizing of the quantity for buying
     def __compute_buy_quantity(self, symbol, direction = "BUY"):
         if direction == "BUY": # If in buy, the quantity is in dollar 
             if self.sizing_rule: 
                 if self.free_cash < 1.0: # each available trade must have value > $1
-                    return 0, 0
+                    return 0, 0 
                 if self.free_cash < self.sizing_rule:
                     return self.free_cash, 0
                 return self.sizing_rule, 0
             else:
                 return 0, 0
         elif direction == "COVER": # If in cover the quantity is in stocks
-            return -1 * self.inventory[symbol], 1
+            return abs(self.inventory[symbol]), 1
         else:
             print("You are not suppose to be here!")
             raise NotImplementedError
@@ -93,14 +89,27 @@ class Portfolio():
     # and also share amount for sell. Therefore, no complex checking need to be done
     def handle_signal_event(self, event):
         # only buy according to the frequency
-        ret_event = None
         if self.last_buy % self.frequency == 0: 
             dt = datetime.now()
-            position_change = event.direction == self.position[event.symbol]
+            position_change = event.direction != self.position[event.symbol]
+            quantity, quantity_type = 0, 0
+            direction = self.position[event.symbol]
             
-            # regardless of the positoin, the main functions are the same except for how they are handled
-            # and how many time the signals are emitted for position changed from short -> long and long -> short
-            if position_change: 
+            # regardless of the position, the main functions are the same except for how they are handled
+            # and how many time the signals are emitted for position changed
+            # SHORT -> LONG or LONG -> SHORT, could also be OUT -> LONG or OUT -> SHORT
+            isOut = self.position[event.symbol] == "OUT"
+            if isOut:
+                if event.direction == "LONG":
+                    direction = "BUY" # when exiting out of a short position, if not enough money, go into debt
+                    quantity, quantity_type = self.__compute_buy_quantity(event.symbol, direction)
+                    self.pending = None
+                elif event.direction == "SHORT": 
+                    direction = "SHORT"
+                    quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
+                    self.pending = None
+
+            if not isOut and position_change: 
                 if event.direction == "LONG":
                     direction = "COVER" # when exiting out of a short position, if not enough money, go into debt
                     quantity, quantity_type = self.__compute_buy_quantity(event.symbol, direction)
@@ -109,45 +118,45 @@ class Portfolio():
                     direction = "SELL"
                     quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
                     self.pending = "SHORT"
-            else:
-                self.pending = None
-                return []
+
+            # If position did not change, just continue with the same position
             ret_event = OrderEvent(symbol=event.symbol, 
                                     order_type="MARKET", 
                                     quantity=quantity, 
                                     datetime=dt, 
                                     direction=direction,
-                                    type=quantity_type)
+                                    quant_type=quantity_type)
 
         # Update last buy
         self.last_buy += (self.last_buy + 1) % self.frequency
-        if ret_event and ret_event.quantity > 0:
+        if ret_event.quantity > 0:
             return [ret_event]
-        return []
+        else:
+            return []
     
     def __update_position_inv(self, event):
         if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
-            self.position[event.symbol] = 0
+            self.position[event.symbol] = "SHORT"
             
             share_sold = event.quantity // event.fill_cost
             self.inventory[event.symbol] = -1 * share_sold
             self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
 
         elif event.direction == "SELL": # Need to be in long position to sell 
-            self.position[event.symbol] = 1
+            self.position[event.symbol] = "OUT"
 
             share_sold = self.inventory[event.symbol]
             self.inventory[event.symbol] = 0
             self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
         
         elif event.direction == "COVER": # need to be in the short position to cover (essentially same as buying)
-            self.position[event.symbol] = 1
+            self.position[event.symbol] = "OUT"
 
             self.inventory[event.symbol] = 0
             self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
 
         elif event.direction == "BUY": # need to be in out position/long position to buy
-            self.position[event.symbol] = 2
+            self.position[event.symbol] = "LONG"
 
             self.inventory[event.symbol] = event.quantity
             self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
@@ -158,22 +167,21 @@ class Portfolio():
         self.equity = self.free_cash + inventory_value
         self.trade_log.append(event)
 
-        
     # Update the portfolio to reflect the position change
     def handle_fill_event(self, event):
         self.__update_position_inv(event)
-        
         # If there is another step that needs to be taken
         if self.pending:
             dt = datetime.now()
             if self.pending == "BUY":
-                quantity = self.__compute_buy_quantity()
+                quantity, quantity_type  = self.__compute_buy_quantity(event.symbol, self.pending)
             elif self.pending == "SHORT":
-                self.__compute_sell_quantity(event.symbol, self.pending)
+                quantity, quantity_type = self.__compute_sell_quantity(event.symbol, self.pending)
             self.pending = None
             return [OrderEvent(symbol=event.symbol, 
                                     order_type="MARKET", 
                                     quantity=quantity, 
                                     datetime=dt, 
-                                    direction=self.pending)]
-        return 1
+                                    direction=self.pending,
+                                    quant_type=quantity_type)]
+        return None

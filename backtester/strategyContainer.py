@@ -12,7 +12,7 @@ class StrategyContainer:
         # The strategy used for the signal
         if(inst == "MAC"):
             self.strats = MAC(self.tickers)
-        elif(inst == "DAC" or inst == "LS"):
+        elif(inst == "DCA" or inst == "LS"):
             self.strats = DCA_LS(self.tickers)
         elif(inst == "NN"):
             self.strats = None

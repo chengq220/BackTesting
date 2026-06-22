@@ -37,14 +37,14 @@ class OrderEvent(Event):
     quantity - the cash amount of stocks to buy/sell
     type - whether it is cash or stocks (0 for cash, 1 for stock)
     """
-    def __init__(self, symbol, datetime, direction, order_type, quantity, type):
+    def __init__(self, symbol, datetime, direction, order_type, quantity, quant_type):
         super().__init__("ORDER") 
         self.symbol = symbol
         self.order_type = order_type
         self.quantity = quantity
         self.datetime = datetime
         self.direction = direction
-        self.type = type
+        self.quant_type = quant_type
 
     def print_order(self):
         """

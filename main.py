@@ -11,7 +11,7 @@ class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars, inst="MAC")
+        self.__strategy = Strategy(self.__bars, inst="DCA")
         self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     
@@ -27,7 +27,6 @@ class Simulation:
             self.__update_queue(self.__bars.updateBar())
             while len(self.__queue) > 0:
                 event = self.__queue.popleft()
-                print(event.type)
                 if event.type == "KILL":
                     print("Terminating")
                     terminate = True
@@ -36,14 +35,20 @@ class Simulation:
                     for tick in self.__bars.tickers:
                         prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
                     _ = self.__portfolio.on_market(prices)
-                    self.__update_queue(self.__strategy.on_market())
+                    res = self.__strategy.on_market()
+                    self.__update_queue(res)
                 elif event.type == "SIGNAL":
-                    self.__update_queue(self.__portfolio.handle_signal_event(event))
+                    res = self.__portfolio.handle_signal_event(event)
+                    self.__update_queue(res)
                 elif event.type == "ORDER":
-                    self.__update_queue(self.__executor.execute_order(event))
+                    res = self.__executor.execute_order(event)
+                    self.__update_queue(res)
                 elif event.type == "FILL":
-                    _ = self.__portfolio.handle_fill_event(event)
+                    res = self.__portfolio.handle_fill_event(event)
+                    if res:
+                        self.__update_queue(res)
                 else:
+                    print(event)
                     print("You are not suppose to be here!")
                     raise NotImplementedError
     
