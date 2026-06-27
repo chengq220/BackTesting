@@ -31,11 +31,11 @@ class SignalEvent(Event):
 class OrderEvent(Event):
     """
     symbol - ticker symbol
-    datetime - the time stamp for the signal
-    direction - buy/sell/short/cover
     order_type - market or limit
     quantity - the cash amount of stocks to buy/sell
-    type - whether it is cash or stocks (0 for cash, 1 for stock)
+    datetime - the time stamp for the signal
+    direction - buy/sell/short/cover
+    quant_type - whether it is cash or stocks (0 for cash, 1 for stock)
     """
     def __init__(self, symbol, datetime, direction, order_type, quantity, quant_type):
         super().__init__("ORDER") 

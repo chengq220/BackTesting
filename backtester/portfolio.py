@@ -42,9 +42,12 @@ class Portfolio():
 
     # Update the equity in the portfolio on the market event
     def on_market(self, prices):
+        """
+        Update the value of the portfolio based on everyday update
+        """
         inventory_value = 0
         for key in self.inventory:
-            inventory_value += abs(self.inventory[key]) * prices[key]
+            inventory_value += self.inventory[key] * prices[key]
         self.equity = self.free_cash + inventory_value
         self.portfolio_history.append({
             "free_cash": self.free_cash,
@@ -56,6 +59,9 @@ class Portfolio():
     
     # Different ways to identify sizing of the quantity for buying
     def __compute_buy_quantity(self, symbol, direction = "BUY"):
+        """
+        return (x, y) where x is the amount and y is whether it is a share/dollar amount
+        """
         if direction == "BUY": # If in buy, the quantity is in dollar 
             if self.sizing_rule: 
                 if self.free_cash < 1.0: # each available trade must have value > $1
@@ -135,32 +141,34 @@ class Portfolio():
             return []
     
     def __update_position_inv(self, event):
+        """
+        Event quantity is all in terms of stock quantity regardless of buy/sell since it is consolidated
+        in the executor to all stock quantity
+        Based on the direction, update the position of the inventory
+        """
+
+        shares = event.quantity 
+
         if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
             self.position[event.symbol] = "SHORT"
-            
-            share_sold = event.quantity // event.fill_cost
-            self.inventory[event.symbol] = -1 * share_sold
-            self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
+            self.inventory[event.symbol] = -1 * shares
+            self.free_cash = self.free_cash + shares * (event.fill_cost -  event.commission)
 
         elif event.direction == "SELL": # Need to be in long position to sell 
             self.position[event.symbol] = "OUT"
-
-            share_sold = self.inventory[event.symbol]
             self.inventory[event.symbol] = 0
-            self.free_cash = self.free_cash + event.quantity - share_sold * event.commission
+            self.free_cash = self.free_cash + shares * (event.fill_cost -  event.commission)
         
         elif event.direction == "COVER": # need to be in the short position to cover (essentially same as buying)
             self.position[event.symbol] = "OUT"
-
             self.inventory[event.symbol] = 0
-            self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
+            self.free_cash = self.free_cash - shares * (event.fill_cost + event.commission)
 
         elif event.direction == "BUY": # need to be in out position/long position to buy
             self.position[event.symbol] = "LONG"
+            self.inventory[event.symbol] = shares
+            self.free_cash = self.free_cash - shares * (event.fill_cost -  event.commission)
 
-            self.inventory[event.symbol] = event.quantity
-            self.free_cash = self.free_cash - (event.fill_cost + event.commission) * event.quantity
-        
         inventory_value = 0
         for symb in self.inventory:
             inventory_value += self.inventory[symb] * event.fill_cost
@@ -169,6 +177,9 @@ class Portfolio():
 
     # Update the portfolio to reflect the position change
     def handle_fill_event(self, event):
+        """
+        Update the portfolio position
+        """
         self.__update_position_inv(event)
         # If there is another step that needs to be taken
         if self.pending:
@@ -177,11 +188,12 @@ class Portfolio():
                 quantity, quantity_type  = self.__compute_buy_quantity(event.symbol, self.pending)
             elif self.pending == "SHORT":
                 quantity, quantity_type = self.__compute_sell_quantity(event.symbol, self.pending)
-            self.pending = None
-            return [OrderEvent(symbol=event.symbol, 
+            pending_order = [OrderEvent(symbol=event.symbol, 
                                     order_type="MARKET", 
                                     quantity=quantity, 
                                     datetime=dt, 
                                     direction=self.pending,
                                     quant_type=quantity_type)]
+            self.pending = None
+            return pending_order
         return None

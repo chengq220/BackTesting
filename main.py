@@ -48,7 +48,6 @@ class Simulation:
                     if res:
                         self.__update_queue(res)
                 else:
-                    print(event)
                     print("You are not suppose to be here!")
                     raise NotImplementedError
     

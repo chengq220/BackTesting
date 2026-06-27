@@ -12,27 +12,30 @@ class Executor():
     
     # Responsible to respond to sell orders
     def __sell_order(self, event, close_price, quantity_type):
+        """
+        Returns the total stock amount that was sold
+        """
         # want to make sure that all shares are whole numbers for simplicity
         if quantity_type == 0: # cash 
             share_quantity = event.quantity // (close_price + self.fee)
         else: # stocks
             share_quantity = event.quantity
-
-        total_value = share_quantity * close_price
-        return total_value
+        return share_quantity
     
     # Responsible to respond to buy orders
     def __buy_order(self, event, close_price, quantity_type):
+        """
+        Returns the total stock amount that was bought
+        """
+        
         if quantity_type == 0: #cash 
             dollar_quantity = event.quantity
             price_post_fee = close_price + self.fee 
             share_quantity = dollar_quantity//price_post_fee
-            
-            total_bought = share_quantity * close_price
         else: # stocks (exiting out of a short)
-            stock_quantity = event.quantity
-            total_bought = stock_quantity * close_price
-        return total_bought
+            share_quantity = event.quantity
+
+        return share_quantity
 
     """
     Executes the order events and buys/sells a tangible amount
@@ -41,14 +44,18 @@ class Executor():
         symbol = event.symbol
         order_type = event.order_type
         direction = event.direction
-        quantity_type = event.type
+
+        # flag for whether the amount is cash or stocks shares
+        quantity_type = event.quant_type
         
         symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1].item()
         time_index = datetime.datetime.now()
 
         if direction == "BUY" or direction == "COVER":
+            # Amount will be in terms of cash
             share_quantity = self.__buy_order(event, symb_close_price, quantity_type)
         else:
+            # Amount will be in terms of cash
             share_quantity = self.__sell_order(event, symb_close_price, quantity_type)
         
         commission = self.fee
