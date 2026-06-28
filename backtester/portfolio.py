@@ -13,7 +13,7 @@ class Portfolio():
     sizing_rule - how much are invested each time a investment is made
     frequency - how often are investment signal getting send (in days)
     """
-    def __init__(self, inital_cash, sizing_rule = "10000", frequency = 1):
+    def __init__(self, inital_cash, sizing_rule = "2000", frequency = 1):
         self.free_cash = inital_cash # liquid cash
         self.equity = inital_cash # Free_cash + value of inventory
         if sizing_rule.isnumeric():
@@ -52,6 +52,7 @@ class Portfolio():
             "free_cash": self.free_cash,
             "equity": self.equity,
             "inventory": self.inventory.copy(),
+            "position": self.position.copy()
         })
 
         return 1
@@ -94,11 +95,14 @@ class Portfolio():
     # and also share amount for sell. Therefore, no complex checking need to be done
     def handle_signal_event(self, event):
         # only buy according to the frequency
-        if self.last_buy % self.frequency == 0: 
+        if self.last_buy % self.frequency != 0:
+            ret_event = None
+        else:
+            self.last_buy = 0
             dt = datetime.now()
             position_change = event.direction != self.position[event.symbol]
+            direction = "HOLD" if self.position[event.symbol] != "OUT" else "OUT"
             quantity, quantity_type = 0, 0
-            direction = self.position[event.symbol]
             
             # regardless of the position, the main functions are the same except for how they are handled
             # and how many time the signals are emitted for position changed
@@ -113,6 +117,9 @@ class Portfolio():
                     direction = "SHORT"
                     quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
                     self.pending = None
+                elif event.direction == "HOLD" or event.direction == "OUT":
+                    direction = self.position[event.symbol] # Maintain current position
+                    self.pending = None
 
             if not isOut and position_change: 
                 if event.direction == "LONG":
@@ -123,6 +130,18 @@ class Portfolio():
                     direction = "SELL"
                     quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
                     self.pending = "SHORT"
+                elif event.direction == "HOLD":
+                    direction = self.position[event.symbol] # Maintain current position
+                    self.pending = None
+                elif event.direction == "OUT": # when just trying to exit
+                    if self.position[event.symbol] == "LONG":
+                        direction = "SELL"
+                        quantity, quantity_type = self.__compute_sell_quantity(event.symbol, direction)
+                        self.pending = None
+                    elif self.position[event.symbol] == "SHORT":
+                        direction = "COVER"
+                        quantity, quantity_type = self.__compute_buy_quantity(event.symbol, direction)
+                        self.pending = None
 
             # If position did not change, just continue with the same position
             ret_event = OrderEvent(symbol=event.symbol, 
@@ -131,13 +150,14 @@ class Portfolio():
                                     datetime=dt, 
                                     direction=direction,
                                     quant_type=quantity_type)
-
+            
         # Update last buy
-        self.last_buy += (self.last_buy + 1) % self.frequency
-        if ret_event.quantity > 0:
-            return [ret_event]
-        else:
-            return []
+        self.last_buy = self.last_buy + 1
+        if ret_event:
+            if ret_event.quantity > 0:
+                return [ret_event]
+        
+        return []
     
     def __update_position_inv(self, event):
         """
@@ -170,8 +190,7 @@ class Portfolio():
 
         inventory_value = 0
         inventory_value += self.inventory[event.symbol] * event.fill_cost
-        self.equity = self.free_cash + inventory_value
-        self.trade_log.append(event)
+        # self.equity = self.free_cash + inventory_value
 
     # Update the portfolio to reflect the position change
     def handle_fill_event(self, event):
@@ -186,13 +205,16 @@ class Portfolio():
                 quantity, quantity_type  = self.__compute_buy_quantity(event.symbol, self.pending)
             elif self.pending == "SHORT":
                 quantity, quantity_type = self.__compute_sell_quantity(event.symbol, self.pending)
-            pending_order = [OrderEvent(symbol=event.symbol, 
-                                    order_type="MARKET", 
-                                    quantity=quantity, 
-                                    datetime=dt, 
-                                    direction=self.pending,
-                                    quant_type=quantity_type)]
-            self.pending = None
-            return pending_order
+            if quantity > 0:
+                pending_order = [OrderEvent(symbol=event.symbol, 
+                                            order_type="MARKET", 
+                                            quantity=quantity, 
+                                            datetime=dt, 
+                                            direction=self.pending,
+                                            quant_type=quantity_type)]
+                self.pending = None
+                return pending_order
+            else:
+                self.pending = None
         return None
 
