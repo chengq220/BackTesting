@@ -9,7 +9,7 @@ class MarketEvent(Event):
     def __init__(self):
         super().__init__("MARKET") 
 
-# Event to terminate back testing
+# Event to terminate backtesting
 class TerminateEvent(Event):
     def __init__(self):
         super().__init__("KILL") 

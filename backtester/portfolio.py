@@ -18,7 +18,6 @@ class Portfolio():
         self.equity = inital_cash # Free_cash + value of inventory
         if sizing_rule.isnumeric():
             self.sizing_rule = int(sizing_rule)
-            
         else:
             self.sizing_rule = None
         self.frequency = frequency
@@ -152,7 +151,7 @@ class Portfolio():
         if event.direction == "SHORT": # need to be in out/short position to short (essentially same as selling)
             self.position[event.symbol] = "SHORT"
             self.inventory[event.symbol] = -1 * shares
-            self.free_cash = self.free_cash + shares * (event.fill_cost -  event.commission)
+            self.free_cash = self.free_cash + shares * (event.fill_cost - event.commission)
 
         elif event.direction == "SELL": # Need to be in long position to sell 
             self.position[event.symbol] = "OUT"
@@ -167,11 +166,10 @@ class Portfolio():
         elif event.direction == "BUY": # need to be in out position/long position to buy
             self.position[event.symbol] = "LONG"
             self.inventory[event.symbol] = shares
-            self.free_cash = self.free_cash - shares * (event.fill_cost -  event.commission)
+            self.free_cash = self.free_cash - shares * (event.fill_cost +  event.commission)
 
         inventory_value = 0
-        for symb in self.inventory:
-            inventory_value += self.inventory[symb] * event.fill_cost
+        inventory_value += self.inventory[event.symbol] * event.fill_cost
         self.equity = self.free_cash + inventory_value
         self.trade_log.append(event)
 
@@ -197,3 +195,4 @@ class Portfolio():
             self.pending = None
             return pending_order
         return None
+

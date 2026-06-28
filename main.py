@@ -11,7 +11,7 @@ class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars, inst="DCA")
+        self.__strategy = Strategy(self.__bars, strat="MAC")
         self.__portfolio = Portfolio(10000, sizing_rule = "10000")
         self.__executor = Executor("NASDAQ", self.__bars)
     

@@ -2,7 +2,7 @@ from backtester.strategies import *
 
 # Answer the question "what is my directional view right now?"
 class StrategyContainer:
-    def __init__(self, data_handler, inst = "MAC"):
+    def __init__(self, data_handler, strat = "MAC"):
         # The market data
         self.data = data_handler
 
@@ -10,11 +10,13 @@ class StrategyContainer:
         self.tickers = self.data.tickers
 
         # The strategy used for the signal
-        if(inst == "MAC"):
+        if(strat == "MAC"):
             self.strats = MAC(self.tickers)
-        elif(inst == "DCA" or inst == "LS"):
+        elif(strat == "DCA" or strat == "LS"):
             self.strats = DCA_LS(self.tickers)
-        elif(inst == "NN"):
+        elif(strat == "LLM"):
+            self.strats = None
+        elif(strat == "NN"):
             self.strats = None
         else:
             raise NotImplementedError
