@@ -11,8 +11,8 @@ class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars, strat="LS")
-        self.__portfolio = Portfolio(10000, sizing_rule = "2000")
+        self.__strategy = Strategy(self.__bars, strat="MAC")
+        self.__portfolio = Portfolio(10000, sizing_rule = 2000)
         self.__executor = Executor("NASDAQ", self.__bars)
     
     def __update_queue(self, events):
@@ -21,6 +21,9 @@ class Simulation:
 
     def simulate(self, backtest = True):
         terminate = False
+
+        # initialize the portfolio 
+        _ = self.__portfolio.init_portfolio(self.__bars.tickers)
         # Double while loops make sure that each bar are separated events so no mixing events between days
         # This avoids having multiple market events in the queue
         while backtest and not terminate:
@@ -29,6 +32,9 @@ class Simulation:
                 event = self.__queue.popleft()
                 if event.type == "KILL":
                     print("Terminating")
+                    # At termination, return the portfolio to OUT position for all stocks
+                    self.__update_queue(self.__portfolio.exit_position())
+                    
                     terminate = True
                 elif event.type == "MARKET":
                     prices = {}
@@ -60,7 +66,7 @@ class Simulation:
         return processed
     
 if __name__ == "__main__":
-    sim = Simulation(["IVV"])
+    sim = Simulation(["IVV", "AAPL"])
     sim.simulate()
     hist = sim.get_portfolio_history()
 

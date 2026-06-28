@@ -59,14 +59,14 @@ class MAC(Strategy):
 
         has_prev_data = lma_0 and sma_0
 
+        return_strat = "HOLD"
         if has_prev_data:
             if(lma_0 - sma_0 > 0 and lma_1 - sma_1 < 0):
-                return "SHORT"
+                return_strat = "SHORT"
             elif(lma_0 - sma_0 < 0 and lma_1 - sma_1 > 0):
-                return "LONG"
-            else:
-                return "HOLD"
-        return "HOLD"
+                return_strat = "LONG"
+
+        return return_strat
         
 class DCA_LS(Strategy):
     """
