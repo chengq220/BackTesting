@@ -47,6 +47,10 @@ class Portfolio():
             self.inventory[tick]
             self.free_cash[tick]
         return 1
+    
+    # Return the final portfolio state and the history of the portfolio
+    def get_portfolio_stats(self):
+        return self.equity, self.portfolio_history
 
     # Update the equity in the portfolio on the market event
     def on_market(self, prices):
@@ -253,6 +257,7 @@ class Portfolio():
         for tick in self.position.keys():
             cur_position = self.position[tick]
             cur_order = None
+            dt = datetime.now()
             if cur_position == "LONG":
                 direction = "SELL"
                 quantity, quantity_type = self.__compute_sell_quantity(tick, "SELL")

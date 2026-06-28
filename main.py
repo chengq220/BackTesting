@@ -34,7 +34,6 @@ class Simulation:
                     print("Terminating")
                     # At termination, return the portfolio to OUT position for all stocks
                     self.__update_queue(self.__portfolio.exit_position())
-                    
                     terminate = True
                 elif event.type == "MARKET":
                     prices = {}
@@ -59,8 +58,10 @@ class Simulation:
     
     def get_portfolio_history(self):
         processed = defaultdict(list)
-        for idx in range(len(self.__portfolio.portfolio_history)):
-            cur_dict = self.__portfolio.portfolio_history[idx]
+        end_cash, portfolio_history = self.__portfolio.get_portfolio_stats()
+        print(f"Ending cash: ${end_cash}")
+        for idx in range(len(portfolio_history)):
+            cur_dict = portfolio_history[idx]
             for key in cur_dict.keys():
                 processed[key].append(cur_dict[key])
         return processed
