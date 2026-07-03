@@ -53,15 +53,16 @@ class Portfolio():
         return self.equity, self.portfolio_history
 
     # Update the equity in the portfolio on the market event
-    def on_market(self, prices):
+    def on_market(self, prices = None):
         """
         Update the value of the portfolio based on everyday update
         """
         inventory_value = 0
         left_over_cash = 0
-        for key in self.inventory:
-            inventory_value += self.inventory[key] * prices[key]
-            left_over_cash += self.free_cash[key]
+        if prices:
+            for key in self.inventory:
+                inventory_value += self.inventory[key] * prices[key]
+                left_over_cash += self.free_cash[key]
         self.equity = left_over_cash + inventory_value
         self.portfolio_history.append({
             'free_cash': left_over_cash,
@@ -279,6 +280,7 @@ class Portfolio():
                             quant_type=quantity_type)
             if cur_order:
                 ret_events.append(cur_order)
+
         if len(ret_events) > 0:
             return ret_events
         return []

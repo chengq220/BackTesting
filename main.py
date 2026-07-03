@@ -6,14 +6,12 @@ from backtester.execution import Executor
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
-from ollama import chat
-from ollama import ChatResponse
 
 class Simulation:
     def __init__(self, tickers:list):
         self.__queue = deque()
         self.__bars = DataHandler(tickers)
-        self.__strategy = Strategy(self.__bars, strat="MAC")
+        self.__strategy = Strategy(self.__bars, strat="LLM")
         self.__portfolio = Portfolio(10000, sizing_rule = 2000)
         self.__executor = Executor("NASDAQ", self.__bars)
     
@@ -57,7 +55,11 @@ class Simulation:
                 else:
                     print("You are not suppose to be here!")
                     raise NotImplementedError
-    
+        
+        # Update the portfolio history after exiting all positions 
+        self.__portfolio.on_market()
+
+
     def get_portfolio_history(self):
         processed = defaultdict(list)
         end_cash, portfolio_history = self.__portfolio.get_portfolio_stats()
@@ -77,16 +79,3 @@ if __name__ == "__main__":
     plt.plot(t, hist["equity"], linestyle = 'dotted')
     plt.plot(t, hist["free_cash"], linestyle = 'solid')
     plt.show()
-    # bars = DataHandler(["IVV"])
-    # data = bars.get_last_N_bars("IVV", 60)
-    # new_data = ",".join([f"({idx-60+1}, {data[idx].item()})" for idx in range(data.shape[0])])
-    # print(new_data)
-    # response: ChatResponse = chat(model='gemma3:1b', messages=[
-    # {
-    #     'role': 'user',
-    #     'content': f'Instruction: You are a strict financial advisor on what position should be taken for certain stocks. \
-    #         Prompt: Given the stock price data {new_data}, what should the position be? Choose and return 1 option from\
-    #             from the following: LONG, SHORT, HOLD, OUT. ONLY returb the position as there is no need for explanation.',
-    # },
-    # ])
-    # print(response.message.content)

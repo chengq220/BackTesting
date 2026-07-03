@@ -1,5 +1,7 @@
 from ollama import chat
 from ollama import ChatResponse
+import time
+from backtester.event import SignalEvent
 
 class LLM_Strategy():
     def __init__(self, tickers):
@@ -9,7 +11,10 @@ class LLM_Strategy():
         res = []
         dt = args['dt'] # stock data
         for tick in self.tickers:
-            res.append(self.generate_signal(tick, dt))
+            direction = self.generate_signal(tick, dt)
+            datetime = time.time()
+            output = SignalEvent(tick, datetime, direction)
+            res.append(output)
         return res
 
     def generate_signal(self, symbol, data, horizon=60):
@@ -18,18 +23,24 @@ class LLM_Strategy():
         response: ChatResponse = chat(model='gemma3:1b', messages=[
         {
             'role': 'user',
-            'content': f'Instruction: You are a strict financial advisor on what position should be taken for certain stocks. \
-            Prompt: Given the stock price data {dt_processed}, what should the position be? Choose and return 1 option from\
-                from the following: LONG, SHORT, HOLD, OUT. ONLY returb the position as there is no need for explanation.',
+            'content': f'''You are a quantitative trading signal generator.
+                Given the following stock price sequence over {horizon} days in the format 
+                (x, y) where x is the number of days prior and y is the price at x:
+                {dt_processed}
+
+                Analyze the trend, momentum, and recent price action.
+                If the trend is clearly upward → LONG
+                If the trend is clearly downward → SHORT  
+                If the trend is unclear or sideways → HOLD
+                If you have no conviction → OUT
+
+                Return exactly one word: LONG, SHORT, HOLD, or OUT'''
         },
         ])
-        signal = (response.message.content).upper()
+        signal = (response.message.content).strip().upper()
 
         # Hallucination safety guardrail
         if signal not in ["HOLD", "LONG", "SHORT", "OUT"]:
             signal = "HOLD"
         return signal
-
-
-# if __name__ == "__main__":
 

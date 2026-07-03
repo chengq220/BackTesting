@@ -27,5 +27,10 @@ while event_queue_isnt_empty():
 ```
 
 ## Setting up OLLAMA
+
+## Streamlit Interface 
+```
+streamlit run demo.py
+```
 ## Reference
 www.quantstart.com
