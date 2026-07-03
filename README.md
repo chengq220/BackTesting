@@ -26,5 +26,6 @@ while event_queue_isnt_empty():
         portfolio.handle_fill(event)
 ```
 
+## Setting up OLLAMA
 ## Reference
 www.quantstart.com

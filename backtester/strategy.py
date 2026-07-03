@@ -1,4 +1,5 @@
-from backtester.strategies import *
+from backtester.strategies.classic import *
+from backtester.strategies.llm_strategy import *
 
 # Answer the question "what is my directional view right now?"
 class StrategyContainer:
@@ -15,7 +16,7 @@ class StrategyContainer:
         elif(strat == "DCA" or strat == "LS"):
             self.strats = DCA_LS(self.tickers)
         elif(strat == "LLM"):
-            self.strats = None
+            self.strats = LLM_Strategy(self.tickers)
         elif(strat == "NN"):
             self.strats = None
         else:

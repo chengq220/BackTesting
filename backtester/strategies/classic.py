@@ -2,19 +2,12 @@ from backtester.event import SignalEvent
 from collections import defaultdict
 import time
 
-class Strategy():
-    def __init__(self, tickers):
-        self.tickers = tickers
-    
-    def on_market(self, args):
-        pass
-
-class MAC(Strategy):
+class MAC():
     """
     Moving Average Crossover
     """
     def __init__(self, tickers):
-        super().__init__(tickers)
+        self.tickers = tickers
         # self.lma = []
         # self.sma = []
         self.lma = defaultdict(list)
@@ -68,12 +61,12 @@ class MAC(Strategy):
 
         return return_strat
         
-class DCA_LS(Strategy):
+class DCA_LS():
     """
     Dollar Cost Averaging/Lump Sum
     """
     def __init__(self, tickers):
-        super().__init__(tickers)
+        self.tickers = tickers
 
     """
     Dollar Cost Averaging/Lump Sum Signals

@@ -1,11 +1,13 @@
 from collections import deque
 from backtester.data import DataHandler
-from backtester.strategyContainer import StrategyContainer as Strategy
+from backtester.strategy import StrategyContainer as Strategy
 from backtester.portfolio import Portfolio
 from backtester.execution import Executor
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
+from ollama import chat
+from ollama import ChatResponse
 
 class Simulation:
     def __init__(self, tickers:list):
@@ -75,3 +77,16 @@ if __name__ == "__main__":
     plt.plot(t, hist["equity"], linestyle = 'dotted')
     plt.plot(t, hist["free_cash"], linestyle = 'solid')
     plt.show()
+    # bars = DataHandler(["IVV"])
+    # data = bars.get_last_N_bars("IVV", 60)
+    # new_data = ",".join([f"({idx-60+1}, {data[idx].item()})" for idx in range(data.shape[0])])
+    # print(new_data)
+    # response: ChatResponse = chat(model='gemma3:1b', messages=[
+    # {
+    #     'role': 'user',
+    #     'content': f'Instruction: You are a strict financial advisor on what position should be taken for certain stocks. \
+    #         Prompt: Given the stock price data {new_data}, what should the position be? Choose and return 1 option from\
+    #             from the following: LONG, SHORT, HOLD, OUT. ONLY returb the position as there is no need for explanation.',
+    # },
+    # ])
+    # print(response.message.content)
