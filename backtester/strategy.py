@@ -23,8 +23,9 @@ class StrategyContainer:
             raise NotImplementedError
 
     # Retrieve the response to a on-market signal for each strategy
-    def on_market(self):
+    def on_market(self, cur_date):
         return self.strats.on_market({
+            'date': cur_date,
             'dt': self.data
         })
             

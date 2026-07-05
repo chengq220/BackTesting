@@ -40,7 +40,7 @@ class Executor():
     """
     Executes the order events and buys/sells a tangible amount
     """
-    def execute_order(self, event):
+    def execute_order(self, event, cur_date):
         symbol = event.symbol
         order_type = event.order_type
         direction = event.direction
@@ -49,7 +49,7 @@ class Executor():
         quantity_type = event.quant_type
         
         symb_close_price = self.data.get_last_N_bars(symbol, 1)[-1].item()
-        time_index = datetime.datetime.now()
+        time_index = cur_date
 
         if direction == "BUY" or direction == "COVER":
             # Amount will be in terms of cash

@@ -109,13 +109,12 @@ class Portfolio():
     # passed to the executor
     # Don't have to check if we have enough money because we only send the order in dollar amount for buy
     # and also share amount for sell. Therefore, no complex checking need to be done
-    def handle_signal_event(self, event):
+    def handle_signal_event(self, event, cur_date):
         # only buy according to the frequency
         if self.last_change_pos[event.symbol] < self.invest_frequency:
             ret_event = None
         else:
- 
-            dt = datetime.now()
+            dt = cur_date
             position_change = event.direction != self.position[event.symbol]
             direction = "HOLD" if self.position[event.symbol] != "OUT" else "OUT"
             quantity, quantity_type = 0, 0
@@ -226,14 +225,14 @@ class Portfolio():
         inventory_value += self.inventory[event.symbol] * event.fill_cost
 
     # Update the portfolio to reflect the position change
-    def handle_fill_event(self, event):
+    def handle_fill_event(self, event, cur_date):
         """
         Update the portfolio position
         """
         self.__update_position_inv(event)
         # If there is another step that needs to be taken
         if self.pending:
-            dt = datetime.now()
+            dt = cur_date
             if self.pending == "BUY":
                 quantity, quantity_type  = self.__compute_buy_quantity(event.symbol, self.pending)
             elif self.pending == "SHORT":

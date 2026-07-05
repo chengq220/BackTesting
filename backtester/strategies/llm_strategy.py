@@ -1,6 +1,6 @@
 from ollama import chat
 from ollama import ChatResponse
-import time
+# import time
 from backtester.event import SignalEvent
 
 class LLM_Strategy():
@@ -10,9 +10,10 @@ class LLM_Strategy():
     def on_market(self, args):
         res = []
         dt = args['dt'] # stock data
+        datetime = args['date']
         for tick in self.tickers:
             direction = self.generate_signal(tick, dt)
-            datetime = time.time()
+            # datetime = time.time()
             output = SignalEvent(tick, datetime, direction)
             res.append(output)
         return res

@@ -1,6 +1,6 @@
 from backtester.event import SignalEvent
 from collections import defaultdict
-import time
+# import time
 
 class MAC():
     """
@@ -19,15 +19,15 @@ class MAC():
         event_out = []
         for symb in self.tickers:
             symb = symb.upper()
-            symb_direction = self.generate_signal(symb, args['dt'])
+            symb_direction = self.generate_signal(symb, args['dt'], args['date'])
             event_out.append(symb_direction)
         return event_out
 
     # Strategy used to generate the signals
-    def generate_signal(self, ticker, data):
+    def generate_signal(self, ticker, data, datetime):
         dt = data.get_last_N_bars(ticker, 60)
         direction = self.get_signal(ticker, dt)
-        datetime = time.time()
+        # datetime = time.time()
         output = SignalEvent(ticker, datetime, direction)
         return output
 
@@ -73,8 +73,9 @@ class DCA_LS():
     """
     def on_market(self, args):
         output = []
+        datetime = args['date']
         for ticker in self.tickers:
-            datetime = time.time()
+            # datetime = time.time()
             ticker_signal = SignalEvent(ticker, datetime, "LONG")
             output.append(ticker_signal)
         return output
