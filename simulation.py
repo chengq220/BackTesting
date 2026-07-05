@@ -72,8 +72,17 @@ class Simulation:
         return processed
     
 if __name__ == "__main__":
-    sim = Simulation(["IVV", "AAPL"])
-    sim.run_all()
+    sim = Simulation(["IVV"], start="2009-12-01", end="2010-6-01", inital_captial=10000, strategy="DCA")
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    sim.run_one_epoch()
+    # sim.run_all()
     hist = sim.get_portfolio_history()
 
     t = np.arange(0, len(hist["equity"]))
