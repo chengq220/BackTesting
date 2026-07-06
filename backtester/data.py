@@ -34,15 +34,13 @@ class DataHandler:
         self.curBar = curBar if curBar else 0
 
     def get_current_day(self):
-        date = self.data.get_data()[self.tickers[0]][self.curBar:self.curBar+1]["Date"]
+        idx_get = min(self.curBar, self.data.num_data-1)
+        date = self.data.get_data()[self.tickers[0]].iloc[idx_get]["Date"]
         return date
 
     # Since this is backtesting, we have all the historic data
     # so we can just index it    
     def updateBar(self):
-        print(self.curBar)
-        print(self.data.num_data)
-        print("===================================")
         if(self.curBar >= self.data.num_data):
             return [TerminateEvent()]
         
