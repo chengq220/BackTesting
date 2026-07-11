@@ -1,17 +1,16 @@
 from backtester.event import SignalEvent
 from collections import defaultdict
-# import time
 
 class MAC():
     """
     Moving Average Crossover
     """
-    def __init__(self, tickers):
+    def __init__(self, tickers, params):
         self.tickers = tickers
-        # self.lma = []
-        # self.sma = []
         self.lma = defaultdict(list)
         self.sma = defaultdict(list)
+        self.sh = params["fast_sma"]
+        self.lh = params["slow_sma"]
     
     # On market event, pulls the latest bars, and generate signal and add those signals back to the queue
     def on_market(self, args):
@@ -38,8 +37,8 @@ class MAC():
     return [long, short, hold, out]
     """
     def get_signal(self, symbol, dt):
-        lma_1 = dt.mean()
-        sma_1 = dt[-30:].mean()
+        lma_1 = dt[-self.lh:].mean()
+        sma_1 = dt[-self.sh:].mean()
         
         lma_cur = self.lma[symbol]
         sma_cur = self.sma[symbol]

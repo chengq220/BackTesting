@@ -8,7 +8,7 @@ from simulation import Simulation
 # ----------------------------------------------------------------------
 # Page config
 # ----------------------------------------------------------------------
-st.set_page_config(page_title="Backtesting Dashboard", layout="wide", page_icon="📈")
+st.set_page_config(page_title="Backtesting Dashboard", layout="wide")
  
 st.title("Backtesting Dashboard")
 st.caption("Enter one or more tickers, pick a strategy, and see how it would have performed historically.")
@@ -38,88 +38,6 @@ st.caption("Enter one or more tickers, pick a strategy, and see how it would hav
 #     # combine multiple tickers into one equal-weight backtest.
 # }
 # ========================================================================
- 
-def call_backtest_api(tickers, start_date, end_date, initial_capital,
-                       strategy, strategy_params, combine_portfolio):
-    """
-    TODO: replace this mock implementation with a real request, e.g.:
- 
-        import requests
-        resp = requests.post("https://your-api.example.com/backtest", json={
-            "tickers": tickers,
-            "start_date": str(start_date),
-            "end_date": str(end_date),
-            "initial_capital": initial_capital,
-            "strategy": strategy,
-            "strategy_params": strategy_params,
-            "combine_portfolio": combine_portfolio,
-        })
-        resp.raise_for_status()
-        return resp.json()
-    """
-    dates = pd.date_range(start_date, end_date, freq="B")
-    n = len(dates)
-    rng = np.random.default_rng(seed=abs(hash(tuple(tickers))) % (2**32))
- 
-    results = {}
-    combined_curve = np.zeros(n)
-    combined_bh = np.zeros(n)
- 
-    for t in tickers:
-        drift = rng.uniform(0.0002, 0.0006)
-        vol = rng.uniform(0.01, 0.02)
-        strat_returns = rng.normal(drift, vol, n)
-        bh_returns = rng.normal(drift * 0.8, vol, n)
- 
-        strat_curve = initial_capital * np.cumprod(1 + strat_returns)
-        bh_curve = initial_capital * np.cumprod(1 + bh_returns)
- 
-        combined_curve += strat_curve
-        combined_bh += bh_curve
- 
-        running_max = np.maximum.accumulate(strat_curve)
-        drawdown = strat_curve / running_max - 1
- 
-        results[t] = {
-            "dates": dates.strftime("%Y-%m-%d").tolist(),
-            "portfolio_value": strat_curve.tolist(),
-            "buy_hold_value": bh_curve.tolist(),
-            "metrics": {
-                "total_return": strat_curve[-1] / strat_curve[0] - 1,
-                "cagr": (strat_curve[-1] / strat_curve[0]) ** (252 / n) - 1,
-                "volatility": np.std(strat_returns) * np.sqrt(252),
-                "sharpe_ratio": (np.mean(strat_returns) / np.std(strat_returns)) * np.sqrt(252),
-                "max_drawdown": drawdown.min(),
-                "win_rate": (strat_returns > 0).mean(),
-                "calmar_ratio": abs(((strat_curve[-1] / strat_curve[0]) ** (252 / n) - 1) / drawdown.min())
-                                if drawdown.min() != 0 else np.nan,
-            },
-        }
- 
-    if combine_portfolio and len(tickers) > 1:
-        running_max = np.maximum.accumulate(combined_curve)
-        drawdown = combined_curve / running_max - 1
-        combined_returns = np.diff(combined_curve) / combined_curve[:-1]
-        results["PORTFOLIO"] = {
-            "dates": dates.strftime("%Y-%m-%d").tolist(),
-            "portfolio_value": combined_curve.tolist(),
-            "buy_hold_value": combined_bh.tolist(),
-            "metrics": {
-                "total_return": combined_curve[-1] / combined_curve[0] - 1,
-                "cagr": (combined_curve[-1] / combined_curve[0]) ** (252 / n) - 1,
-                "volatility": np.std(combined_returns) * np.sqrt(252),
-                "sharpe_ratio": (np.mean(combined_returns) / np.std(combined_returns)) * np.sqrt(252),
-                "max_drawdown": drawdown.min(),
-                "win_rate": (combined_returns > 0).mean(),
-                "calmar_ratio": abs(((combined_curve[-1] / combined_curve[0]) ** (252 / n) - 1) / drawdown.min())
-                                if drawdown.min() != 0 else np.nan,
-            },
-        }
- 
-    return results
- 
-# ========================================================================
-# ------------------------------------------------------------------------
  
 # ----------------------------------------------------------------------
 # Sidebar - Inputs
@@ -157,9 +75,9 @@ with st.sidebar:
  
     strategy = st.selectbox(
         "Choose a strategy",
-        ["Buy & Hold", "SMA Crossover", "RSI Mean Reversion"]
+        ["Buy & Hold", "SMA Crossover", "LLM"]
     )
- 
+    
     strategy_params = {}
     if strategy == "SMA Crossover":
         c1, c2 = st.columns(2)
@@ -168,17 +86,10 @@ with st.sidebar:
         with c2:
             strategy_params["slow_sma"] = st.number_input("Slow SMA (days)", min_value=5, value=50)
  
-    if strategy == "RSI Mean Reversion":
-        strategy_params["rsi_period"] = st.number_input("RSI period", min_value=2, value=14)
-        c1, c2 = st.columns(2)
-        with c1:
-            strategy_params["rsi_low"] = st.number_input("Buy below RSI", min_value=1, max_value=50, value=30)
-        with c2:
-            strategy_params["rsi_high"] = st.number_input("Sell above RSI", min_value=50, max_value=99, value=70)
- 
-    st.divider()
-    run_button = st.button("Start Backtest", use_container_width=True, type="primary")
- 
+    st.divider() 
+    run_one_button = st.button("Run One", use_container_width=True, type="primary")
+    run_all_button = st.button("Run All", use_container_width=True, type="primary")
+
 # ----------------------------------------------------------------------
 # Display helpers
 # ----------------------------------------------------------------------
@@ -241,36 +152,8 @@ def render_result_block(name, result):
  
     st.divider()
  
-# ----------------------------------------------------------------------
-# Main logic
-# ----------------------------------------------------------------------
-if run_button:
-    tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
- 
-    if not tickers:
-        st.error("Please enter at least one ticker.")
-        st.stop()
- 
-    if start_date >= end_date:
-        st.error("Start date must be before end date.")
-        st.stop()
- 
-    sim = Simulation(tickers, strategy, strategy_params, initial_capital)
-    with st.spinner("Running backtest..."):
-        results = call_backtest_api(
-            tickers=tickers,
-            start_date=start_date,
-            end_date=end_date,
-            initial_capital=initial_capital,
-            strategy=strategy,
-            strategy_params=strategy_params,
-            combine_portfolio=combine_portfolio,
-        )
- 
-    if not results:
-        st.error("No results returned from backend.")
-        st.stop()
- 
+def render(results):
+    tickers = list(results.keys())
     if "PORTFOLIO" in results:
         render_result_block("Combined Portfolio", results["PORTFOLIO"])
         with st.expander("Per-ticker breakdown"):
@@ -286,6 +169,59 @@ if run_button:
                 render_result_block(t, results[t])
             else:
                 st.warning(f"No result returned for '{t}'.")
+
+# ----------------------------------------------------------------------
+# Main logic
+# ----------------------------------------------------------------------
+def initialize_portfolio():
+    tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
+    if not tickers:
+        st.error("Please enter at least one ticker.")
+        st.stop()
+
+    if start_date >= end_date:
+        st.error("Start date must be before end date.")
+        st.stop()
+
+    if strategy == "Buy & Hold":
+        strategy_corres = "LS"
+    elif strategy == "SMA Crossover":
+        strategy_corres = "MAC"
+    else:
+        strategy_corres = strategy 
+
+    strategy_dict = {
+        "strategy": strategy_corres,
+        "strategy_param": strategy_params
+    }
+
+    sim = Simulation(tickers, strategy_dict, start_date, end_date, initial_capital)
+    sim.initialize_portfolio()
+    return sim
+
+
+sim = None
+if run_one_button:
+    if not sim or not sim.portfolio_init:
+        sim = initialize_portfolio()
+    
+    with st.spinner("Running one epoch..."):    
+        sim.run_one_epoch()
+        results = sim.get_portfolio_history()
+
+    print(results)
+
+    render(results)
+
+if run_all_button:
+    if not sim or not sim.portfolio_init:
+        sim = initialize_portfolio()
+    
+    with st.spinner("Running all epoch..."):
+        sim.run_all()
+        results = sim.get_portfolio_history()
+
+    render(results)
  
 else:
     st.info("Set your parameters in the sidebar and click **Run Backtest** to get started.")

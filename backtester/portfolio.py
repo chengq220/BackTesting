@@ -1,6 +1,5 @@
 from backtester.event import OrderEvent
 from collections import defaultdict
-from datetime import datetime
 
 """
 Portfolio class to simulate one's investment portfolio
@@ -30,7 +29,7 @@ class Portfolio():
         self.inventory = defaultdict(lambda: 0) # Number of stocks you are holding
 
         self.trade_log = []
-        self.portfolio_history = []
+        self.portfolio_history = {}
 
         # last time each position changed
         self.last_change_pos = defaultdict(lambda: 1)
@@ -53,25 +52,34 @@ class Portfolio():
         return self.equity, self.portfolio_history
 
     # Update the equity in the portfolio on the market event
-    def on_market(self, prices):
+    def on_market(self, prices, date):
         """
-        Update the value of the portfolio based on everyday update
+        Update the value of the portfolio based on everyday change to the market
         """
         assert len(prices) > 0, "Prices dictionary have to be not empty"
         
-        inventory_value = 0
-        left_over_cash = 0
-        for key in self.inventory:
-            inventory_value += self.inventory[key] * prices[key]
-            left_over_cash += self.free_cash[key]
-        self.equity = left_over_cash + inventory_value
-        self.portfolio_history.append({
-            'free_cash': left_over_cash,
-            "equity": self.equity,
-            "inventory": self.inventory.copy(),
-            "position": self.position.copy()
-        })
+        # inventory_value = 0
+        # left_over_cash = 0
+        # for key in self.inventory:
+        #     inventory_value += self.inventory[key] * prices[key]
+        #     left_over_cash += self.free_cash[key]
+        # self.equity = left_over_cash + inventory_value
+        # self.portfolio_history.append({
+        #     'free_cash': left_over_cash,
+        #     "equity": self.equity,
+        #     "inventory": self.inventory.copy(),
+        #     "position": self.position.copy()
+        # })
 
+        for key in self.inventory:
+            if not self.portfolio_history.get(key, None):
+                self.portfolio_history[key] = defaultdict(list)
+            inventory_value = self.inventory[key] * prices[key]
+            left_over_cash = self.free_cash[key]
+            self.portfolio_history[key]["Date"].append(date)
+            self.portfolio_history[key]["Equity"].append(inventory_value + left_over_cash)
+            self.portfolio_history[key]["Inventory"].append(self.inventory[key])
+            self.portfolio_history[key]["Position"].append(self.position[key])
         return 1
     
     # Different ways to identify sizing of the quantity for buying
@@ -253,29 +261,27 @@ class Portfolio():
         return None
     
     # Liquidate the portfolio
-    def exit_position(self):
+    def exit_position(self, cur_date):
         ret_events = []
         for tick in self.position.keys():
             cur_position = self.position[tick]
             cur_order = None
-            dt = datetime.now()
             if cur_position == "LONG":
                 direction = "SELL"
                 quantity, quantity_type = self.__compute_sell_quantity(tick, "SELL")
                 cur_order = OrderEvent(symbol=tick, 
                     order_type="MARKET", 
                     quantity=quantity, 
-                    datetime=dt, 
+                    datetime=cur_date, 
                     direction=direction,
                     quant_type=quantity_type)
             elif cur_position == "SHORT":
                 direction = "COVER"
                 quantity, quantity_type = self.__compute_buy_quantity(tick, "COVER")
-                dt = datetime.now()
                 cur_order = OrderEvent(symbol=tick, 
                             order_type="MARKET", 
                             quantity=quantity, 
-                            datetime=dt, 
+                            datetime=cur_date, 
                             direction=direction,
                             quant_type=quantity_type)
             if cur_order:
