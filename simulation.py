@@ -3,19 +3,20 @@ from backtester.data import DataHandler
 from backtester.strategy import StrategyContainer as Strategy
 from backtester.portfolio import Portfolio
 from backtester.execution import Executor
-from collections import defaultdict
-import matplotlib.pyplot as plt
-import numpy as np
 
 class Simulation:
     def __init__(self, tickers:list, strategy:dict, start:str, end:str, inital_captial:int):
         self.__queue = deque()
+        
         self.__bars = DataHandler(tickers, start, end)
+        
         self.__strategy = Strategy(self.__bars, strat_dict=strategy)
+        
         self.__portfolio = Portfolio(inital_captial, sizing_rule = 2000)
+
         self.__executor = Executor("NASDAQ", self.__bars)
 
-    # initialize the portfolio 
+    # initialize the portfolio when user is ready
     def initialize_portfolio(self):
         _ = self.__portfolio.init_portfolio(self.__bars.tickers)
         self.portfolio_init = True
@@ -30,7 +31,7 @@ class Simulation:
             prices[tick] = self.__bars.get_last_N_bars(tick, 1)[-1].item()
         return prices
 
-    def run_one_epoch(self, manual_terminate = True):
+    def run_one_epoch(self):
         terminate = False
         self.__update_queue(self.__bars.updateBar())
         while len(self.__queue) > 0:
@@ -59,11 +60,6 @@ class Simulation:
             else:
                 print("You are not suppose to be here!")
                 raise NotImplementedError
-        
-        if manual_terminate:
-            prices = self.__compute_prices()
-            terminate_date = self.__bars.get_current_day()
-            self.__portfolio.on_market(prices, terminate_date)
 
         return terminate
 
@@ -72,7 +68,7 @@ class Simulation:
         # This avoids having multiple market events in the queue
         terminate = False
         while backtest and not terminate:
-            terminate_signal = self.run_one_epoch(manual_terminate=False)
+            terminate_signal = self.run_one_epoch()
             terminate = terminate or terminate_signal 
 
         # Update the portfolio history after exiting all positions 
@@ -80,17 +76,9 @@ class Simulation:
         terminate_date = self.__bars.get_current_day()
         self.__portfolio.on_market(prices, terminate_date)
 
-
     def get_portfolio_history(self):
-        processed = defaultdict(list)
-        end_cash, portfolio_history = self.__portfolio.get_portfolio_stats()
-        print(portfolio_history)
-        print(f"Ending cash: ${end_cash}")
-        for idx in range(len(portfolio_history)):
-            cur_dict = portfolio_history[idx]
-            for key in cur_dict.keys():
-                processed[key].append(cur_dict[key])
-        return processed
+        portfolio_history = self.__portfolio.get_portfolio_stats()
+        return portfolio_history
     
 if __name__ == "__main__":
     strategy = {
@@ -98,11 +86,6 @@ if __name__ == "__main__":
         "strategy_param": None
     }
     sim = Simulation(["IVV"], start="2023-12-01", end="2024-6-01", inital_captial=10000, strategy=strategy)
-    # sim.run_one_epoch(manual_terminate=Fa)
     sim.run_all()
     hist = sim.get_portfolio_history()
-
-    # t = np.arange(0, len(hist["equity"]))
-    # plt.plot(t, hist["equity"], linestyle = 'dotted')
-    # plt.plot(t, hist["free_cash"], linestyle = 'solid')
-    # plt.show()
+    print(hist)

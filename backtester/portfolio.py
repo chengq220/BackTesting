@@ -49,7 +49,7 @@ class Portfolio():
     
     # Return the final portfolio state and the history of the portfolio
     def get_portfolio_stats(self):
-        return self.equity, self.portfolio_history
+        return self.portfolio_history
 
     # Update the equity in the portfolio on the market event
     def on_market(self, prices, date):
@@ -57,26 +57,13 @@ class Portfolio():
         Update the value of the portfolio based on everyday change to the market
         """
         assert len(prices) > 0, "Prices dictionary have to be not empty"
-        
-        # inventory_value = 0
-        # left_over_cash = 0
-        # for key in self.inventory:
-        #     inventory_value += self.inventory[key] * prices[key]
-        #     left_over_cash += self.free_cash[key]
-        # self.equity = left_over_cash + inventory_value
-        # self.portfolio_history.append({
-        #     'free_cash': left_over_cash,
-        #     "equity": self.equity,
-        #     "inventory": self.inventory.copy(),
-        #     "position": self.position.copy()
-        # })
 
         for key in self.inventory:
             if not self.portfolio_history.get(key, None):
                 self.portfolio_history[key] = defaultdict(list)
             inventory_value = self.inventory[key] * prices[key]
             left_over_cash = self.free_cash[key]
-            self.portfolio_history[key]["Date"].append(date)
+            self.portfolio_history[key]["Date"].append(date.strftime('%Y-%m-%d'))
             self.portfolio_history[key]["Equity"].append(inventory_value + left_over_cash)
             self.portfolio_history[key]["Inventory"].append(self.inventory[key])
             self.portfolio_history[key]["Position"].append(self.position[key])

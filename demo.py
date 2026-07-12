@@ -121,15 +121,15 @@ def metric_display_row(metrics):
 def render_result_block(name, result):
     st.subheader(name)
  
-    dates = pd.to_datetime(result["dates"])
-    portfolio_value = pd.Series(result["portfolio_value"], index=dates)
-    buy_hold_value = pd.Series(result["buy_hold_value"], index=dates)
+    dates = pd.to_datetime(result["Date"])
+    portfolio_value = pd.Series(result["Equity"], index=dates)
+    buy_hold_value = pd.Series(result["Equity"], index=dates)
  
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=portfolio_value.index, y=portfolio_value,
                               name=f"{strategy}", line=dict(width=3)))
     fig.add_trace(go.Scatter(x=buy_hold_value.index, y=buy_hold_value,
-                              name="Buy & Hold", line=dict(dash="dot")))
+                              name="Baseline - Buy & Hold", line=dict(dash="dot")))
     fig.update_layout(
         title=f"{name} — Portfolio Growth",
         xaxis_title="Date", yaxis_title="Portfolio Value ($)",
@@ -138,7 +138,7 @@ def render_result_block(name, result):
     )
     st.plotly_chart(fig, use_container_width=True)
  
-    metric_display_row(result["metrics"])
+    # metric_display_row(result["metrics"])
  
     with st.expander(f"Drawdown — {name}"):
         running_max = portfolio_value.cummax()
@@ -208,9 +208,6 @@ if run_one_button:
     with st.spinner("Running one epoch..."):    
         sim.run_one_epoch()
         results = sim.get_portfolio_history()
-
-    print(results)
-
     render(results)
 
 if run_all_button:
@@ -220,7 +217,6 @@ if run_all_button:
     with st.spinner("Running all epoch..."):
         sim.run_all()
         results = sim.get_portfolio_history()
-
     render(results)
  
 else:
